@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { CONTACTS, DATE_TEXT, GUEST_CATEGORY } from '../config.js'
+import { CONTACTS, DATE_TEXT } from '../config.js'
 import Icon from './Icons.jsx'
 import { Divider } from './Ornaments.jsx'
 
@@ -18,7 +18,6 @@ function buildMessage({ name, attending, guests, note }) {
     `Dolazak: ${attending ? 'Dolazim' : 'Ne mogu doći'}`,
     `Broj osoba: ${attending ? guests : 0}`,
     `Napomena: ${note || '-'}`,
-    `Kategorija: ${GUEST_CATEGORY}`,
   ].join('\n')
 }
 
