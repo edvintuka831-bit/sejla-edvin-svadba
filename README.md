@@ -49,10 +49,10 @@ Lokacija se bira ovim redom (u `src/config.js`, lista `PROGRAM`):
 
 | Događaj | Trenutno otvara | Status |
 |---|---|---|
-| 12:00 Okupljanje kod mladoženje | pretraga `Slijevnice, Kakanj` | ⚠ vodi do naselja, ne do kuće – **pošaljite Google Maps link** |
+| 12:00 Okupljanje kod mladoženje | Google Maps link mladenaca `https://maps.app.goo.gl/yBX3s8W2CNhYZzsz6` | ✔ link dostavljen |
 | 12:00 Okupljanje kod mlade | pretraga `Branilaca 10, 72240 Kakanj` | Ulica branilaca postoji u Kakanju (dokumenti Općine). Kućni broj Google možda nema – **preporučen link** |
 | 15:00 Građansko vjenčanje | pretraga `Općina Kakanj, Ulica branilaca 1, 72240 Kakanj` | ✔ adresa iz službenog dokumenta Općine Kakanj |
-| 16:00 Šerijatsko vjenčanje | pretraga `Džamija Bičer, Željeznička Stanica, Kakanj` | ⚠ džamiju nisam mogao potvrditi – **pošaljite Google Maps link** |
+| 16:00 Šerijatsko vjenčanje | Google Maps link mladenaca `https://maps.app.goo.gl/s8cmAxsGuRx885kJ8` | ✔ link dostavljen |
 | 18:00 Svadbeno slavlje | pretraga `ADS Caffe & Restaurant, Kakanj` | ⚠ objekat postoji u Kakanju, tačan pin nepotvrđen – **preporučen link** |
 
 Koordinate nisu upisane namjerno: iz radnog okruženja Google Maps i OpenStreetMap nisu bili dostupni,

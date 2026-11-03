@@ -41,7 +41,7 @@ export const PROGRAM = [
     icon: 'groom',
     highlight: true,
     query: 'Slijevnice, Kakanj',
-    mapsLink: '', // ⚠ čeka Google Maps link kuće mladoženje
+    mapsLink: 'https://maps.app.goo.gl/yBX3s8W2CNhYZzsz6?g_st=ic', // ✔ link poslali mladenci
     coords: '',
   },
   {
@@ -71,7 +71,7 @@ export const PROGRAM = [
     place: 'Džamija Bičer, Željeznička Stanica, Kakanj',
     icon: 'mosque',
     query: 'Džamija Bičer, Željeznička Stanica, Kakanj',
-    mapsLink: '', // ⚠ čeka Google Maps link džamije
+    mapsLink: 'https://maps.app.goo.gl/s8cmAxsGuRx885kJ8?g_st=ic', // ✔ link poslali mladenci
     coords: '',
   },
   {
