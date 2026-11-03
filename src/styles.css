@@ -640,19 +640,26 @@ a { color: inherit; }
 .tl-nav {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 40px;
-  margin-top: 6px;
-  padding: 6px 16px;
+  justify-content: center;
+  gap: 8px;
+  min-height: 50px;
+  min-width: min(100%, 236px);
+  margin-top: 10px;
+  padding: 10px 22px 10px 16px;
   border-radius: 999px;
-  border: 1px solid var(--gold);
-  background: rgba(255, 253, 248, 0.9);
-  color: var(--gold-deep);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: var(--gold-btn);
+  color: #fffbf2;
   font-family: var(--font-caps);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   text-decoration: none;
+  text-shadow: 0 1px 1px rgba(110, 80, 30, 0.4);
+  box-shadow: 0 12px 22px -12px rgba(130, 95, 35, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(201, 165, 94, 0.25);
+  transition: transform 0.15s, box-shadow 0.2s;
 }
 .tl-nav:active { transform: scale(0.97); }

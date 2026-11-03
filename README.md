@@ -38,15 +38,25 @@ Umjesto Supabasea koristi se **Netlify Blobs** – stvarna trajna baza ugrađena
 
 ## ⚠ Lokacije – šta je provjereno, a šta trebam od vas
 
-Sve se mijenja u `src/config.js` (lista `PROGRAM`). Ako upišete `coords: '44.1234,18.1234'`, navigacija ide tačno na taj pin.
+Svaki događaj ima zlatno dugme **OTVORI LOKACIJU** (visina 50 px, prilagođeno dodiru prstom). Dodir otvara
+Google Maps – na iPhoneu/Androidu aplikaciju ako je instalirana, inače Google Maps u pregledniku – gdje gost
+dodirne **Upute / Directions → Start** i navigacija počinje.
 
-| Događaj | Pretraga u Google Maps | Status |
+Lokacija se bira ovim redom (u `src/config.js`, lista `PROGRAM`):
+1. `mapsLink` – **Google Maps link koji pošaljete** (u Google Maps: lokacija → *Podijeli* → *Kopiraj link*, npr. `https://maps.app.goo.gl/…`);
+2. `coords` – koordinate, npr. `'44.1234,18.1234'`;
+3. `query` – pretraga po tačnom nazivu/adresi koju ste dali (privremeno rješenje).
+
+| Događaj | Trenutno otvara | Status |
 |---|---|---|
-| Okupljanje kod mladoženje | `Slijevnice, Kakanj` | ⚠ vodi do naselja – **pošaljite pin kuće** |
-| Okupljanje kod mlade | `Ulica branilaca 10, 72240 Kakanj` | Ulica branilaca postoji u Kakanju (dokumenti Općine). Potvrdite da je kuća u Kakanju. |
-| Građansko vjenčanje | `Općina Kakanj, Ulica branilaca 1, 72240 Kakanj` | ✔ adresa Općine iz službenog plana nabavki Općine Kakanj |
-| Šerijatsko vjenčanje | `Džamija Bičer, Kakanj` | ⚠ Bičer i Željeznička Stanica su naselja općine Kakanj, ali džamiju nisam mogao potvrditi online – **pošaljite pin** |
-| Svadbeno slavlje | `ADS Caffe & Restoran, Kakanj` | ⚠ objekat postoji pod tim nazivom u Kakanju (restoranski imenik), adresa nepotvrđena – otvorite dugme i provjerite ili pošaljite pin |
+| 12:00 Okupljanje kod mladoženje | pretraga `Slijevnice, Kakanj` | ⚠ vodi do naselja, ne do kuće – **pošaljite Google Maps link** |
+| 12:00 Okupljanje kod mlade | pretraga `Branilaca 10, 72240 Kakanj` | Ulica branilaca postoji u Kakanju (dokumenti Općine). Kućni broj Google možda nema – **preporučen link** |
+| 15:00 Građansko vjenčanje | pretraga `Općina Kakanj, Ulica branilaca 1, 72240 Kakanj` | ✔ adresa iz službenog dokumenta Općine Kakanj |
+| 16:00 Šerijatsko vjenčanje | pretraga `Džamija Bičer, Željeznička Stanica, Kakanj` | ⚠ džamiju nisam mogao potvrditi – **pošaljite Google Maps link** |
+| 18:00 Svadbeno slavlje | pretraga `ADS Caffe & Restaurant, Kakanj` | ⚠ objekat postoji u Kakanju, tačan pin nepotvrđen – **preporučen link** |
+
+Koordinate nisu upisane namjerno: iz radnog okruženja Google Maps i OpenStreetMap nisu bili dostupni,
+pa nijedna koordinata nije nagađana.
 
 **Muzika** – koristi se `jedina.mp3` koji ste dostavili za prethodnu pozivnicu; pjesma nije mijenjana.
 Prava javnog korištenja snimka su vaša odgovornost kao vlasnika pozivnice.

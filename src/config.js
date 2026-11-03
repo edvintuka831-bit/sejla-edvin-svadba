@@ -26,9 +26,12 @@ export const INVITATION_TEXT = {
 }
 
 // Program dana. Vrijeme polaska po mladu namjerno NIJE navedeno (nije dogovoreno).
-// Navigacija (Google Maps): `coords` (npr. '44.1234,18.1234') ima prednost nad pretragom `query`.
-// ⚠ Slijevnice: tačan pin kuće još nije dostavljen – pretraga vodi do naselja.
-// ⚠ ADS Caffe & Restaurant i Džamija Bičer: pretraga po nazivu – provjeriti / poslati pin.
+// Dugme „OTVORI LOKACIJU“ otvara Google Maps (aplikaciju na iPhoneu/Androidu ako je instalirana),
+// odakle gost jednim dodirom pokreće navigaciju. Redoslijed prednosti:
+//   1. mapsLink – Google Maps link koji pošalju mladenci (Podijeli → Kopiraj link, npr. https://maps.app.goo.gl/...)
+//   2. coords   – tačne koordinate, npr. '44.1234,18.1234'
+//   3. query    – pretraga po tačnom nazivu/adresi koju su dali mladenci (privremeno, dok link ne stigne)
+// Ništa od ovoga nije izmišljeno: dok link/koordinate nisu potvrđeni, polja ostaju prazna.
 export const PROGRAM = [
   {
     id: 'mladozenja',
@@ -38,15 +41,17 @@ export const PROGRAM = [
     icon: 'groom',
     highlight: true,
     query: 'Slijevnice, Kakanj',
+    mapsLink: '', // ⚠ čeka Google Maps link kuće mladoženje
     coords: '',
   },
   {
     id: 'mlada',
     time: '12:00',
     title: 'Okupljanje kod mlade',
-    place: 'Branilaca 10',
+    place: 'Branilaca 10, Kakanj',
     icon: 'bride',
-    query: 'Ulica branilaca 10, 72240 Kakanj',
+    query: 'Branilaca 10, 72240 Kakanj',
+    mapsLink: '', // ⚠ preporučeno: Google Maps link kuće mlade
     coords: '',
   },
   {
@@ -56,15 +61,17 @@ export const PROGRAM = [
     place: 'Općina Kakanj',
     icon: 'rings',
     query: 'Općina Kakanj, Ulica branilaca 1, 72240 Kakanj',
+    mapsLink: '',
     coords: '',
   },
   {
     id: 'serijatsko',
     time: '16:00',
     title: 'Šerijatsko vjenčanje',
-    place: 'Džamija Bičer, Željeznička Stanica',
+    place: 'Džamija Bičer, Željeznička Stanica, Kakanj',
     icon: 'mosque',
-    query: 'Džamija Bičer, Kakanj',
+    query: 'Džamija Bičer, Željeznička Stanica, Kakanj',
+    mapsLink: '', // ⚠ čeka Google Maps link džamije
     coords: '',
   },
   {
@@ -73,13 +80,17 @@ export const PROGRAM = [
     title: 'Svadbeno slavlje',
     place: 'ADS Caffe & Restaurant',
     icon: 'cheers',
-    query: 'ADS Caffe & Restoran, Kakanj',
+    query: 'ADS Caffe & Restaurant, Kakanj',
+    mapsLink: '', // ⚠ preporučeno: Google Maps link restorana
     coords: '',
   },
 ]
 
-export const mapsUrl = ({ query, coords }) =>
-  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coords || query)}`
+// Zvanični Google Maps URL (radi u pregledniku i otvara aplikaciju Google Maps na mobitelu).
+export const mapsUrl = ({ mapsLink, query, coords }) => {
+  if (mapsLink && /^https:\/\/(maps\.app\.goo\.gl|goo\.gl\/maps|(www\.)?google\.[a-z.]+\/maps)/.test(mapsLink)) return mapsLink
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coords || query)}`
+}
 
 // Muzika: Zdravko Čolić – Jedina (fajl public/audio/jedina.mp3, dostavljen od mladenaca).
 export const MUSIC = {

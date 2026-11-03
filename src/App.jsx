@@ -105,8 +105,8 @@ function Invitation() {
                   <p className="tl-title">{e.title}</p>
                   <p className="tl-place">{e.place}</p>
                   <a className="tl-nav" href={mapsUrl(e)} target="_blank" rel="noopener noreferrer"
-                    aria-label={`Navigacija: ${e.title} – ${e.place}`}>
-                    <Icon name="navigate" size={15} /> Navigacija
+                    aria-label={`Otvori lokaciju u Google Maps: ${e.title} – ${e.place}`}>
+                    <Icon name="pin" size={20} /> Otvori lokaciju
                   </a>
                 </div>
               </li>
