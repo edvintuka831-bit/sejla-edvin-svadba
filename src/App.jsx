@@ -56,7 +56,6 @@ function Invitation() {
     <main className="invitation">
       <section className="hero">
         <div className="hero-inner">
-          <p className="hero-eyebrow">Pozivnica · gosti kod mladoženje</p>
           <h1 className="hero-names">
             <span>{COUPLE.bride}</span>
             <i>&amp;</i>
