@@ -11,12 +11,11 @@ Ranije pozivnice (repozitorij `Vjencanje-sejla-edvin`) nisu mijenjane i rade dal
 | Koverta | Bijela koverta sa zlatnim detaljima i voštanim pečatom, natpis *Šejla & Edvin · 23.01.2027.* i *Dodirnite da otvorite pozivnicu.* Dodir otvara preklop, izvlači pozivnicu i pokreće muziku. |
 | 3D scena (Three.js / React Three Fiber) | Bijeli svadbeni automobil u stalnoj vožnji (okreću se točkovi, buket ruža i satenske trake), aleja s kamenim lukovima, cvjetnim vijencima, lampionima i čempresima, zlatno svjetlo zalaska sunca, refleksije na kamenoj aleji, prave sjene, padajuće latice i zlatne iskre. Kamera se filmski kreće kroz 7 kadrova dok gost skrola, a na kraju auto stiže do rotonde – kuće mlade. Sve je modelirano u kodu, bez vanjskih 3D fajlova. |
 | Tekst | Kompletan tekst pozivnice za Verziju C. |
-| Program | 11:00 okupljanje kod mladoženje (Slijevnice) → zajednički odlazak po mladu → 18:00 svadbeno slavlje (ADS Caffe & Restaurant). |
-| Odbrojavanje | Do 23.01.2027. u 11:00 po vremenu BiH (Europe/Sarajevo) – dani, sati, minute, sekunde. Tačno bez obzira na vremensku zonu telefona. |
-| Muzika | Zdravko Čolić – „Jedina“ (`public/audio/jedina.mp3`), kreće nakon dodira koverte; zlatno dugme dolje desno uključuje/isključuje. |
-| Navigacija | Dugmad **LOKACIJA OKUPLJANJA** i **LOKACIJA RESTORANA** (Google Maps). |
-| Potvrda dolaska | Ime i prezime, Dolazim / Ne mogu doći, broj osoba, napomena. Rok 02.01.2027. Svaki zapis dobija grupu **KOD MLADOŽENJE** (određuje je server). |
-| Admin | `/admin` – prijava šifrom, statistika, pretraga, filter, izmjena, brisanje, Excel i CSV (s kolonom Grupa). |
+| Program našeg posebnog dana | 12:00 okupljanje kod mladoženje (Slijevnice – istaknuto i na naslovnom ekranu) · 12:00 okupljanje kod mlade (Branilaca 10) · 15:00 građansko vjenčanje (Općina Kakanj) · 16:00 šerijatsko vjenčanje (Džamija Bičer, Željeznička Stanica) · 18:00 svadbeno slavlje (ADS Caffe & Restaurant). Svaki događaj ima dugme **Navigacija** (Google Maps). Vrijeme polaska po mladu namjerno nije navedeno. |
+| Odbrojavanje | Do 23.01.2027. u 12:00 po vremenu BiH (Europe/Sarajevo) – dani, sati, minute, sekunde. Tačno bez obzira na vremensku zonu telefona. |
+| Muzika | Zdravko Čolić – „Jedina“ (`public/audio/jedina.mp3`), kreće nakon dodira koverte (pravilo mobilnih preglednika), svira u petlji tokom cijelog pregleda, pauzira se kad gost napusti tab i nastavlja kad se vrati; zlatno dugme dolje desno uključuje/isključuje. |
+| Potvrda dolaska | Ime i prezime, Dolazim / Ne mogu doći, broj osoba, napomena, dugme **POTVRDI DOLAZAK**. Rok 02.01.2027. Svaki zapis dobija kategoriju **GOSTI KOD MLADOŽENJE** (određuje je server, gost je ne može promijeniti). |
+| Admin | `/admin` – prijava šifrom, ukupan broj gostiju, broj potvrda, pregled odgovora, pretraga, filter, izmjena, brisanje, izvoz Excel i CSV (s kolonom Kategorija). |
 | Dijeljenje | Naslov, opis i slika 1200×630 (`public/og-image.jpg`) za Viber, WhatsApp i Facebook. |
 
 ### Prilagođavanje uređajima
@@ -26,6 +25,9 @@ elegantna statična pozadina – pozivnica i forma rade normalno. Poštuje se �
 
 ## Potvrde dolaska – baza i sigurnost
 
+Umjesto Supabasea koristi se **Netlify Blobs** – stvarna trajna baza ugrađena u Netlify. Prednost: nema dodatnog naloga, nema javnih API ključeva u kodu stranice, i radi čim se stranica poveže s GitHubom.
+
+
 | Dio | Tehnologija |
 |---|---|
 | Baza | **Netlify Blobs** (trajna pohrana ugrađena u Netlify, spremište `rsvp-mladozenja`) – nema vanjskog naloga ni ključeva u kodu |
@@ -34,20 +36,27 @@ elegantna statična pozadina – pozivnica i forma rade normalno. Poštuje se �
 | Admin šifra | Netlify varijabla **`ADMIN_PASSWORD`** (min. 8 znakova) – nikad u kodu stranice |
 | Zaštita | HttpOnly kolačić 7 dana; 5 pogrešnih šifri → zaključavanje 15 min; ograničenje slanja; skriveno polje protiv botova; admin `noindex` |
 
-## ⚠ Podaci koje još trebam od vas
+## ⚠ Lokacije – šta je provjereno, a šta trebam od vas
 
-Sve se mijenja u `src/config.js` (sekcija `LOCATIONS`):
+Sve se mijenja u `src/config.js` (lista `PROGRAM`). Ako upišete `coords: '44.1234,18.1234'`, navigacija ide tačno na taj pin.
 
-1. **Tačan pin okupljanja u Slijevnicama** – trenutno dugme traži „Slijevnice, Kakanj“ (otvara mjesto, ne kuću).
-   Pošaljite Google Maps link ili koordinate i upisuju se u `coords`, npr. `coords: '44.1234,18.1234'`.
-2. **Restoran** – dugme traži „ADS Caffe & Restoran, Kakanj“ (objekat postoji pod tim nazivom na
-   restoranskim imenicima). Otvorite dugme jednom na telefonu i potvrdite da Google Maps pokazuje pravi
-   restoran; ako ne, pošaljite link ili koordinate.
-3. **Muzika** – koristi se fajl `jedina.mp3` koji ste ranije dostavili za prethodnu pozivnicu. Pjesma nije mijenjana.
-   Pravo javnog korištenja snimka je vaša odgovornost kao vlasnika pozivnice.
-4. **3D model (opcionalno)** – automobil i arhitektura su proceduralno modelirani u kodu. Za još realističniji
-   izgled konkretnog vozila potreban je licenciran `.glb` model (npr. bijeli Mercedes/Rolls-Royce sa Sketchfaba
-   uz komercijalnu licencu, do ~5 MB); tada se ubacuje u `src/three/Car.jsx`.
+| Događaj | Pretraga u Google Maps | Status |
+|---|---|---|
+| Okupljanje kod mladoženje | `Slijevnice, Kakanj` | ⚠ vodi do naselja – **pošaljite pin kuće** |
+| Okupljanje kod mlade | `Ulica branilaca 10, 72240 Kakanj` | Ulica branilaca postoji u Kakanju (dokumenti Općine). Potvrdite da je kuća u Kakanju. |
+| Građansko vjenčanje | `Općina Kakanj, Ulica branilaca 1, 72240 Kakanj` | ✔ adresa Općine iz službenog plana nabavki Općine Kakanj |
+| Šerijatsko vjenčanje | `Džamija Bičer, Kakanj` | ⚠ Bičer i Željeznička Stanica su naselja općine Kakanj, ali džamiju nisam mogao potvrditi online – **pošaljite pin** |
+| Svadbeno slavlje | `ADS Caffe & Restoran, Kakanj` | ⚠ objekat postoji pod tim nazivom u Kakanju (restoranski imenik), adresa nepotvrđena – otvorite dugme i provjerite ili pošaljite pin |
+
+**Muzika** – koristi se `jedina.mp3` koji ste dostavili za prethodnu pozivnicu; pjesma nije mijenjana.
+Prava javnog korištenja snimka su vaša odgovornost kao vlasnika pozivnice.
+
+**Za fotorealističan 3D prikaz** – automobil, arhitektura i cvijeće su modelirani u kodu (bez vanjskih datoteka),
+stil je elegantan ali stilizovan. Za izgled „kao u referentnom videu“ potrebno je:
+1. licenciran 3D model bijelog luksuznog automobila u `.glb` formatu (npr. Sketchfab / CGTrader, komercijalna licenca, do ~5 MB),
+2. po želji HDRI okruženje zlatnog sata (`.hdr`, 1–2K, npr. Poly Haven – besplatno, CC0),
+3. referentni video ponovo (u ovoj sesiji nije dostupan) – da se uskladi kadar i boja.
+Kada ih dostavite, ubacuju se u `src/three/Car.jsx` i `src/three/Scene.jsx` bez promjene ostatka pozivnice.
 
 ## Objava na Netlify – s Android tableta (preporučeno, sve radi)
 
@@ -68,7 +77,7 @@ Sve u Chrome pregledniku na tabletu, na **app.netlify.com**:
    `https://sejla-edvin-mladozenja.netlify.app`. Nakon promjene imena još jednom **Trigger deploy** (da slika za
    Viber/WhatsApp dobije novi puni link).
 6. **Provjera:** otvorite link, pošaljite probnu potvrdu „Test Test“ → otvorite `…netlify.app/admin`, prijavite se,
-   „Test Test“ mora biti na spisku s oznakom KOD MLADOŽENJE → obrišite je.
+   „Test Test“ mora biti na spisku s oznakom GOSTI KOD MLADOŽENJE → obrišite je.
 
 ### Samo izgled (bez potvrda) – ZIP
 `isporuka/sejla-edvin-mladozenja.zip` sadrži gotov produkcijski build (`index.html` u korijenu).

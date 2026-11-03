@@ -2,9 +2,9 @@ import { createHash, randomUUID } from 'node:crypto'
 import { getStore } from '@netlify/blobs'
 import { HttpError } from './http.mjs'
 
-// VERZIJA C – svi odgovori s ove pozivnice pripadaju grupi KOD MLADOŽENJE.
+// VERZIJA C – svi odgovori s ove pozivnice pripadaju kategoriji GOSTI KOD MLADOŽENJE.
 // Grupu određuje server (gost je ne može promijeniti).
-export const GUEST_GROUP = 'KOD MLADOŽENJE'
+export const GUEST_GROUP = 'GOSTI KOD MLADOŽENJE'
 
 // Netlify Blobs: trajna pohrana ugrađena u Netlify (bez vanjske baze i bez ključeva u kodu).
 // Zasebno ime spremišta – ne miješa se s ranijim pozivnicama.

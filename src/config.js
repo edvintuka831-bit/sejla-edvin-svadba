@@ -2,9 +2,9 @@
 
 export const COUPLE = { bride: 'Šejla', groom: 'Edvin', initials: 'Š & E' }
 
-// Odbrojavanje do okupljanja: 23.01.2027. u 11:00 po vremenu Bosne i Hercegovine (Europe/Sarajevo).
+// Odbrojavanje do okupljanja: 23.01.2027. u 12:00 po vremenu Bosne i Hercegovine (Europe/Sarajevo).
 // U januaru BiH koristi CET (UTC+01:00), pa je ovo tačan trenutak bez obzira na zonu telefona gosta.
-export const GATHERING_DATE = new Date('2027-01-23T11:00:00+01:00')
+export const GATHERING_DATE = new Date('2027-01-23T12:00:00+01:00')
 
 export const DATE_TEXT = {
   weekday: 'SUBOTA',
@@ -13,43 +13,70 @@ export const DATE_TEXT = {
   rsvpDeadline: '02.01.2027.',
 }
 
+export const GUEST_CATEGORY = 'GOSTI KOD MLADOŽENJE'
+
 export const INVITATION_TEXT = {
   greeting: 'Dragi naši,',
   paragraphs: [
-    'S velikom radošću i ljubavlju pozivamo vas da budete dio našeg najljepšeg dana.',
-    'Pozivamo vas da nam se pridružite na okupljanju kod mladoženje, odakle ćemo zajedno krenuti po našu mladu Šejlu.',
-    'Vaše prisustvo učinit će ovaj poseban dan još ljepšim i nezaboravnijim.',
+    'S velikom ljubavlju i radošću pozivamo Vas da budete dio našeg najljepšeg dana.',
+    'Pozivamo Vas da nam se pridružite na okupljanju kod mladoženje Edvina, odakle ćemo zajedno krenuti po našu mladu Šejlu.',
+    'Vaše prisustvo učinit će ove posebne trenutke još ljepšim, a našu sreću još većom.',
   ],
-  closing: 'Radujemo se što ćete biti dio naše sreće!',
+  closing: 'Radujemo se Vašem dolasku i zajedničkom slavlju!',
 }
 
-// Program dana (Verzija C)
+// Program dana. Vrijeme polaska po mladu namjerno NIJE navedeno (nije dogovoreno).
+// Navigacija (Google Maps): `coords` (npr. '44.1234,18.1234') ima prednost nad pretragom `query`.
+// ⚠ Slijevnice: tačan pin kuće još nije dostavljen – pretraga vodi do naselja.
+// ⚠ ADS Caffe & Restaurant i Džamija Bičer: pretraga po nazivu – provjeriti / poslati pin.
 export const PROGRAM = [
-  { time: '11:00', title: 'Okupljanje kod mladoženje', place: 'Slijevnice', icon: 'groom' },
-  { time: null, title: 'Zajednički odlazak po mladu', place: 'Krećemo zajedno po našu Šejlu', icon: 'car' },
-  { time: '18:00', title: 'Svadbeno slavlje', place: 'ADS Caffe & Restaurant', icon: 'cheers' },
-]
-
-// Navigacija (Google Maps).
-// ⚠ OKUPLJANJE: tačan pin kuće u Slijevnicama još nije dostavljen.
-//   Kada ga dobijete, upišite koordinate u `coords` (npr. '44.1234,18.1234') – one imaju prednost nad pretragom.
-// ⚠ RESTORAN: Google Maps pretraga po nazivu "ADS Caffe & Restoran, Kakanj" – provjerite da otvara pravi objekat.
-export const LOCATIONS = {
-  gathering: {
-    label: 'Lokacija okupljanja',
-    name: 'Slijevnice',
-    detail: 'Okupljanje kod mladoženje · 11:00',
+  {
+    id: 'mladozenja',
+    time: '12:00',
+    title: 'Okupljanje kod mladoženje',
+    place: 'Slijevnice',
+    icon: 'groom',
+    highlight: true,
     query: 'Slijevnice, Kakanj',
     coords: '',
   },
-  restaurant: {
-    label: 'Lokacija restorana',
-    name: 'ADS Caffe & Restaurant',
-    detail: 'Svadbeno slavlje · 18:00',
+  {
+    id: 'mlada',
+    time: '12:00',
+    title: 'Okupljanje kod mlade',
+    place: 'Branilaca 10',
+    icon: 'bride',
+    query: 'Ulica branilaca 10, 72240 Kakanj',
+    coords: '',
+  },
+  {
+    id: 'gradjansko',
+    time: '15:00',
+    title: 'Građansko vjenčanje',
+    place: 'Općina Kakanj',
+    icon: 'rings',
+    query: 'Općina Kakanj, Ulica branilaca 1, 72240 Kakanj',
+    coords: '',
+  },
+  {
+    id: 'serijatsko',
+    time: '16:00',
+    title: 'Šerijatsko vjenčanje',
+    place: 'Džamija Bičer, Željeznička Stanica',
+    icon: 'mosque',
+    query: 'Džamija Bičer, Kakanj',
+    coords: '',
+  },
+  {
+    id: 'slavlje',
+    time: '18:00',
+    title: 'Svadbeno slavlje',
+    place: 'ADS Caffe & Restaurant',
+    icon: 'cheers',
     query: 'ADS Caffe & Restoran, Kakanj',
     coords: '',
   },
-}
+]
 
 export const mapsUrl = ({ query, coords }) =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coords || query)}`

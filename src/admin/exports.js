@@ -17,12 +17,12 @@ export function formatDate(iso) {
   return `${p.day}.${p.month}.${p.year}. ${p.hour}:${p.minute}`
 }
 
-const HEADER = ['Ime i prezime', 'Grupa', 'Dolazak', 'Broj osoba', 'Napomena', 'Datum potvrde', 'Zadnja izmjena']
+const HEADER = ['Ime i prezime', 'Kategorija', 'Dolazak', 'Broj osoba', 'Napomena', 'Datum potvrde', 'Zadnja izmjena']
 
 const rows = (list) =>
   list.map((r) => [
     r.name,
-    r.group || 'KOD MLADOŽENJE',
+    r.group || 'GOSTI KOD MLADOŽENJE',
     r.attending ? 'Dolazi' : 'Ne dolazi',
     r.attending ? r.guests : 0,
     r.note || '',

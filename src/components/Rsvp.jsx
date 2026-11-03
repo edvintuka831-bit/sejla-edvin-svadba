@@ -93,7 +93,7 @@ export default function Rsvp() {
       <p className="eyebrow">Potvrda dolaska</p>
       <h2 className="section-title">Hoćete li biti s nama?</h2>
       <p className="rsvp-deadline">
-        Molimo vas da dolazak potvrdite najkasnije do <strong>{DATE_TEXT.rsvpDeadline}</strong>
+        Molimo Vas da dolazak potvrdite najkasnije do <strong>{DATE_TEXT.rsvpDeadline}</strong>
       </p>
       <Divider />
 
@@ -102,7 +102,7 @@ export default function Rsvp() {
           <div className="thanks-icon"><Icon name="heart" size={30} /></div>
           <p className="thanks-title">Hvala, {saved.name}!</p>
           {saved.attending ? (
-            <p>Vaša potvrda je spremljena (broj osoba: {saved.guests}). Vidimo se u 11:00 kod mladoženje, pa zajedno idemo po mladu!</p>
+            <p>Vaša potvrda je spremljena (broj osoba: {saved.guests}). Vidimo se u 12:00 kod mladoženje Edvina, pa zajedno idemo po mladu!</p>
           ) : (
             <p>Žao nam je što nećete moći doći. Hvala što ste nam javili – bit ćete u našim mislima.</p>
           )}
@@ -179,7 +179,7 @@ export default function Rsvp() {
 
           <button type="submit" className="btn btn-gold btn-lg" disabled={status === 'sending'}>
             {status === 'sending' ? <span className="spinner" aria-hidden="true" /> : <Icon name="check" size={20} />}
-            {status === 'sending' ? 'Spremam potvrdu...' : 'Pošalji potvrdu'}
+            {status === 'sending' ? 'Spremam potvrdu...' : 'Potvrdi dolazak'}
           </button>
         </form>
       )}

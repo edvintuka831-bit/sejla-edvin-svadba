@@ -184,13 +184,13 @@ function Dashboard({ onLogout, onExpired }) {
         <div>
           <p className="a-mono a-mono-sm">Š <i>&amp;</i> E</p>
           <h1>Potvrde dolaska</h1>
-          <p className="a-muted">Grupa: <b>KOD MLADOŽENJE</b> · okupljanje 23.01.2027. u 11:00 · rok za potvrdu 02.01.2027.</p>
+          <p className="a-muted">Kategorija: <b>GOSTI KOD MLADOŽENJE</b> · okupljanje 23.01.2027. u 12:00 · rok za potvrdu 02.01.2027.</p>
         </div>
         <button className="a-btn a-btn-sm" onClick={logout}>Odjava</button>
       </header>
 
       <section className="a-stats">
-        <div className="a-stat a-stat-main"><b>{stats.guests}</b><span>osoba dolazi</span></div>
+        <div className="a-stat a-stat-main"><b>{stats.guests}</b><span>ukupno gostiju dolazi</span></div>
         <div className="a-stat"><b>{stats.yes}</b><span>potvrdilo dolazak</span></div>
         <div className="a-stat"><b>{stats.no}</b><span>ne dolazi</span></div>
         <div className="a-stat"><b>{stats.total}</b><span>ukupno odgovora</span></div>
@@ -228,7 +228,7 @@ function Dashboard({ onLogout, onExpired }) {
             <li key={r.id} className="a-card a-item">
               <div className="a-item-top">
                 <h3>{r.name}</h3>
-                <span className="a-badge group">{r.group || 'KOD MLADOŽENJE'}</span>
+                <span className="a-badge group">{r.group || 'GOSTI KOD MLADOŽENJE'}</span>
                 <span className={`a-badge ${r.attending ? 'yes' : 'no'}`}>
                   {r.attending ? `Dolazi · ${r.guests} ${osoba(r.guests)}` : 'Ne može doći'}
                 </span>

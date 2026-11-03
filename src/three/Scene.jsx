@@ -15,7 +15,7 @@ const lerp = (a, b, t) => a + (b - a) * t
 // Filmski kadrovi (pozicija kamere i tačka gledanja) u odnosu na automobil,
 // vezani za napredak kroz pozivnicu. Između kadrova kamera klizi glatko.
 const SHOTS = [
-  { p: 0.0, pos: [3.9, 1.25, -7.2], look: [0, 1.75, -0.6] }, // naslov – prednja 3/4
+  { p: 0.0, pos: [3.9, 1.3, -7.4], look: [0, 2.35, -0.6] }, // naslov – prednja 3/4
   { p: 0.14, pos: [6.9, 1.5, -1.0], look: [0, 0.95, -0.6] }, // bočno praćenje
   { p: 0.3, pos: [-2.7, 3.5, 8.6], look: [0, 1.7, -10] }, // kran iza auta kroz arkade
   { p: 0.46, pos: [-1.7, 0.55, -9.4], look: [0, 2.3, 2] }, // nisko ispred, pogled na lukove

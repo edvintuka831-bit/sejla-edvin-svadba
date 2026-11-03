@@ -5,7 +5,7 @@ import Icon from './components/Icons.jsx'
 import MusicControls from './components/MusicButton.jsx'
 import { Divider, OrnamentDefs } from './components/Ornaments.jsx'
 import Rsvp from './components/Rsvp.jsx'
-import { COUPLE, DATE_TEXT, INVITATION_TEXT, LOCATIONS, mapsUrl, PROGRAM } from './config.js'
+import { COUPLE, DATE_TEXT, INVITATION_TEXT, mapsUrl, PROGRAM } from './config.js'
 import { useMusic } from './hooks/useMusic.js'
 import { detectTier, hasWebGL, sceneState } from './three/state.js'
 
@@ -63,6 +63,13 @@ function Invitation() {
             <span>{COUPLE.groom}</span>
           </h1>
           <p className="hero-date">{DATE_TEXT.weekday}, {DATE_TEXT.long}</p>
+          <div className="hero-badge">
+            <span className="hero-badge-time">12:00</span>
+            <span className="hero-badge-text">
+              <b>Okupljanje kod mladoženje</b>
+              <span>Slijevnice · zajedno krećemo po mladu</span>
+            </span>
+          </div>
         </div>
         <a className="scroll-cue" href="#poziv" aria-label="Pomjerite prema dolje">
           <span />
@@ -86,17 +93,21 @@ function Invitation() {
 
       <section className="panel" id="program">
         <div className="card reveal">
-          <p className="eyebrow">Program dana</p>
-          <h2 className="section-title">{DATE_TEXT.weekday}, {DATE_TEXT.long}</h2>
+          <p className="eyebrow">Program našeg posebnog dana</p>
+          <h2 className="section-title">{DATE_TEXT.weekday}<br />{DATE_TEXT.long}</h2>
           <Divider />
           <ol className="timeline">
             {PROGRAM.map((e) => (
-              <li key={e.title} className={`tl-item ${e.time ? '' : 'tl-transit'}`}>
+              <li key={e.id} className={`tl-item ${e.highlight ? 'tl-highlight' : ''}`}>
                 <span className="tl-icon"><Icon name={e.icon} size={26} /></span>
                 <div className="tl-body">
-                  {e.time && <p className="tl-time">{e.time}</p>}
+                  <p className="tl-time">{e.time}{e.highlight && <span className="tl-tag">Vaše okupljanje</span>}</p>
                   <p className="tl-title">{e.title}</p>
                   <p className="tl-place">{e.place}</p>
+                  <a className="tl-nav" href={mapsUrl(e)} target="_blank" rel="noopener noreferrer"
+                    aria-label={`Navigacija: ${e.title} – ${e.place}`}>
+                    <Icon name="navigate" size={15} /> Navigacija
+                  </a>
                 </div>
               </li>
             ))}
@@ -110,30 +121,7 @@ function Invitation() {
         <div className="card card-slim reveal">
           <p className="eyebrow">Do okupljanja je ostalo</p>
           <Countdown />
-          <p className="small-note">23. januar 2027. u 11:00 · vrijeme u Bosni i Hercegovini</p>
-        </div>
-      </section>
-
-      <div className="gap gap-sm" />
-
-      <section className="panel" id="lokacije">
-        <div className="card reveal">
-          <p className="eyebrow">Navigacija</p>
-          <h2 className="section-title">Kako do nas</h2>
-          <Divider />
-          <div className="nav-grid">
-            {[LOCATIONS.gathering, LOCATIONS.restaurant].map((l) => (
-              <a key={l.label} className="nav-btn" href={mapsUrl(l)} target="_blank" rel="noopener noreferrer">
-                <span className="nav-icon"><Icon name="pin" size={24} /></span>
-                <span className="nav-text">
-                  <b>{l.label}</b>
-                  <span>{l.name}</span>
-                  <small>{l.detail}</small>
-                </span>
-                <Icon name="navigate" size={18} className="nav-arrow" />
-              </a>
-            ))}
-          </div>
+          <p className="small-note">23. januar 2027. u 12:00 · okupljanje kod mladoženje · vrijeme u BiH</p>
         </div>
       </section>
 
