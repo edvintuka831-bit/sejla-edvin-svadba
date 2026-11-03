@@ -65,8 +65,9 @@ function Invitation() {
           <div className="hero-badge">
             <span className="hero-badge-time">12:00</span>
             <span className="hero-badge-text">
-              <b>Okupljanje kod mladoženje</b>
-              <span>Slijevnice · zajedno krećemo po mladu</span>
+              <b>Okupljanje gostiju</b>
+              <span>kod mladoženje · Slijevnice</span>
+              <span>kod mlade · Branilaca 10</span>
             </span>
           </div>
         </div>
@@ -100,7 +101,7 @@ function Invitation() {
               <li key={e.id} className={`tl-item ${e.highlight ? 'tl-highlight' : ''}`}>
                 <span className="tl-icon"><Icon name={e.icon} size={26} /></span>
                 <div className="tl-body">
-                  <p className="tl-time">{e.time}{e.highlight && <span className="tl-tag">Vaše okupljanje</span>}</p>
+                  <p className="tl-time">{e.time}</p>
                   <p className="tl-title">{e.title}</p>
                   <p className="tl-place">{e.place}</p>
                   <a className="tl-nav" href={mapsUrl(e)} target="_blank" rel="noopener noreferrer"
@@ -120,7 +121,7 @@ function Invitation() {
         <div className="card card-slim reveal">
           <p className="eyebrow">Do okupljanja je ostalo</p>
           <Countdown />
-          <p className="small-note">23. januar 2027. u 12:00 · okupljanje kod mladoženje · vrijeme u BiH</p>
+          <p className="small-note">23. januar 2027. u 12:00 · okupljanje gostiju · vrijeme u BiH</p>
         </div>
       </section>
 

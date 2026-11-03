@@ -32,7 +32,7 @@ function Login({ onLoggedIn, notice }) {
       <form className="a-card a-login" onSubmit={submit}>
         <p className="a-mono">Š <i>&amp;</i> E</p>
         <h1>Potvrde dolaska</h1>
-        <p className="a-muted">Verzija C · gosti kod mladoženje<br />Privatni pristup za Šejlu i Edvina</p>
+        <p className="a-muted">Privatni pristup za Šejlu i Edvina</p>
         <label className="a-field">
           <span>Šifra</span>
           <div className="a-pass">

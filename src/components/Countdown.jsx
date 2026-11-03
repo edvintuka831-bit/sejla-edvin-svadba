@@ -12,7 +12,7 @@ const plural = (n, one, few, many) => {
 
 export default function Countdown() {
   const { days, hours, minutes, seconds, done } = useCountdown(GATHERING_DATE)
-  if (done) return <p className="countdown-done">Danas je naš dan! Vidimo se u 12:00 kod mladoženje.</p>
+  if (done) return <p className="countdown-done">Danas je naš dan! Vidimo se u 12:00!</p>
   const cells = [
     [days, plural(days, 'dan', 'dana', 'dana')],
     [pad(hours), plural(hours, 'sat', 'sata', 'sati')],

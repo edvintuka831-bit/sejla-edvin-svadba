@@ -19,7 +19,7 @@ export const INVITATION_TEXT = {
   greeting: 'Dragi naši,',
   paragraphs: [
     'S velikom ljubavlju i radošću pozivamo Vas da budete dio našeg najljepšeg dana.',
-    'Pozivamo Vas da nam se pridružite na okupljanju kod mladoženje Edvina, odakle ćemo zajedno krenuti po našu mladu Šejlu.',
+    'Pozivamo Vas da nam se pridružite u 12:00 na okupljanju kod mladoženje Edvina u Slijevnicama ili kod mlade Šejle u Ulici branilaca 10, a zatim zajedno proslavimo naše vjenčanje.',
     'Vaše prisustvo učinit će ove posebne trenutke još ljepšim, a našu sreću još većom.',
   ],
   closing: 'Radujemo se Vašem dolasku i zajedničkom slavlju!',
@@ -39,7 +39,6 @@ export const PROGRAM = [
     title: 'Okupljanje kod mladoženje',
     place: 'Slijevnice',
     icon: 'groom',
-    highlight: true,
     query: 'Slijevnice, Kakanj',
     mapsLink: 'https://maps.app.goo.gl/yBX3s8W2CNhYZzsz6?g_st=ic', // ✔ link poslali mladenci
     coords: '',
