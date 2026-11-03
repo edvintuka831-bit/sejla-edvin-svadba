@@ -1,44 +1,59 @@
 import { useRef, useState } from 'react'
-import { DATE_TEXT } from '../config.js'
+import { CONTACTS, DATE_TEXT, GUEST_CATEGORY } from '../config.js'
 import Icon from './Icons.jsx'
 import { Divider } from './Ornaments.jsx'
 
 const MAX_GUESTS = 20
-const SAVED_KEY = 'rsvp-mladozenja'
 
-const readSaved = () => {
+// Potvrda dolaska putem WhatsAppa: gost popuni formu, dodirne dugme za Edvina ili Šejlu,
+// otvori se WhatsApp s gotovom porukom i gost dodirne "Pošalji".
+// (WhatsApp ne dozvoljava web stranici da poruku pošalje sama – slanje uvijek potvrđuje gost.)
+function buildMessage({ name, attending, guests, note }) {
+  return [
+    attending
+      ? `Pozdrav, potvrđujem dolazak na vjenčanje Šejle i Edvina ${DATE_TEXT.short} 🤍`
+      : `Pozdrav, nažalost ne mogu doći na vjenčanje Šejle i Edvina ${DATE_TEXT.short}.`,
+    '',
+    `Ime i prezime: ${name}`,
+    `Dolazak: ${attending ? 'Dolazim' : 'Ne mogu doći'}`,
+    `Broj osoba: ${attending ? guests : 0}`,
+    `Napomena: ${note || '-'}`,
+    `Kategorija: ${GUEST_CATEGORY}`,
+  ].join('\n')
+}
+
+const waLink = (phone, text) => `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`
+
+// Rezervna kopija u bazi ako je stranica objavljena preko GitHuba (Netlify funkcije).
+// Na stranici objavljenoj prevlačenjem ZIP-a ovo tiho ne uspije – WhatsApp poruka je glavni kanal.
+function backupToServer(payload) {
   try {
-    return JSON.parse(localStorage.getItem(SAVED_KEY) || 'null')
+    fetch('/api/rsvp', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+      keepalive: true,
+    }).catch(() => {})
   } catch {
-    return null
+    // ignoriši
   }
 }
-const writeSaved = (v) => {
-  try {
-    localStorage.setItem(SAVED_KEY, JSON.stringify(v))
-  } catch {
-    // privatni način rada – potvrda je svejedno u bazi
-  }
-}
 
-// Potvrda dolaska – upis u bazu (Netlify Blobs) preko /api/rsvp.
-// "Hvala" se prikazuje ISKLJUČIVO kada server potvrdi upis (HTTP 201 + id zapisa).
 export default function Rsvp() {
-  const [saved, setSaved] = useState(readSaved)
   const [name, setName] = useState('')
   const [attending, setAttending] = useState(null)
   const [guests, setGuests] = useState(1)
   const [note, setNote] = useState('')
-  const [website, setWebsite] = useState('') // skriveno polje protiv spam-botova
   const [errors, setErrors] = useState({})
-  const [status, setStatus] = useState(saved ? 'done' : 'idle') // idle | sending | done | error
-  const [serverError, setServerError] = useState('')
+  const [sent, setSent] = useState(null) // { to, link, name, attending }
   const formRef = useRef(null)
+
+  const cleanName = name.trim().replace(/\s+/g, ' ')
+  const message = buildMessage({ name: cleanName, attending: attending === true, guests, note: note.trim() })
 
   const validate = () => {
     const next = {}
-    const n = name.trim().replace(/\s+/g, ' ')
-    if (n.length < 3 || !n.includes(' ')) next.name = 'Molimo upišite ime i prezime.'
+    if (cleanName.length < 3 || !cleanName.includes(' ')) next.name = 'Molimo upišite ime i prezime.'
     if (attending === null) next.attending = 'Molimo odaberite: Dolazim ili Ne mogu doći.'
     setErrors(next)
     const first = Object.keys(next)[0]
@@ -46,46 +61,25 @@ export default function Rsvp() {
     return !first
   }
 
-  const submit = async (e) => {
-    e.preventDefault()
-    if (status === 'sending' || !validate()) return
-    setStatus('sending')
-    setServerError('')
-    const payload = { name: name.trim(), attending, guests: attending ? guests : 0, note: note.trim(), website }
-    try {
-      const ctrl = new AbortController()
-      const timer = setTimeout(() => ctrl.abort(), 15000)
-      const res = await fetch('/api/rsvp', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: ctrl.signal,
-      })
-      clearTimeout(timer)
-      const type = res.headers.get('content-type') || ''
-      const data = type.includes('application/json') ? await res.json().catch(() => ({})) : {}
-      if (res.status !== 201 || !data.ok || !data.id) {
-        throw new Error(
-          data.error ||
-            (res.status === 404
-              ? 'Server za potvrde trenutno nije dostupan.'
-              : 'Potvrda nije spremljena.'),
-        )
-      }
-      const record = { id: data.id, name: payload.name, attending, guests: payload.guests, at: new Date().toISOString() }
-      writeSaved(record)
-      setSaved(record)
-      setStatus('done')
-      setName('')
-      setAttending(null)
-      setGuests(1)
-      setNote('')
-      setErrors({})
-    } catch (err) {
-      const offline = err.name === 'AbortError' || err.message === 'Failed to fetch' || err instanceof TypeError
-      setServerError(offline ? 'Nema veze sa serverom. Provjerite internet i pokušajte ponovo.' : err.message)
-      setStatus('error')
+  // Link se otvara direktno iz dodira (bez blokiranja na iPhoneu/Androidu).
+  const onSend = (contact) => (e) => {
+    if (!validate()) {
+      e.preventDefault()
+      return
     }
+    backupToServer({ name: cleanName, attending, guests: attending ? guests : 0, note: note.trim() })
+    const next = { to: contact.name, link: waLink(contact.phone, message), name: cleanName, attending }
+    // prikaz se mijenja tek nakon što preglednik otvori link
+    setTimeout(() => setSent(next), 400)
+  }
+
+  const reset = () => {
+    setSent(null)
+    setName('')
+    setAttending(null)
+    setGuests(1)
+    setNote('')
+    setErrors({})
   }
 
   return (
@@ -97,22 +91,24 @@ export default function Rsvp() {
       </p>
       <Divider />
 
-      {status === 'done' && saved ? (
+      {sent ? (
         <div className="thanks" role="status">
-          <div className="thanks-icon"><Icon name="heart" size={30} /></div>
-          <p className="thanks-title">Hvala, {saved.name}!</p>
-          {saved.attending ? (
-            <p>Vaša potvrda je spremljena (broj osoba: {saved.guests}). Vidimo se u 12:00 kod mladoženje Edvina, pa zajedno idemo po mladu!</p>
-          ) : (
-            <p>Žao nam je što nećete moći doći. Hvala što ste nam javili – bit ćete u našim mislima.</p>
-          )}
+          <div className="thanks-icon"><Icon name="whatsapp" size={30} /></div>
+          <p className="thanks-title">Još samo jedan korak</p>
+          <p>
+            Otvoren je WhatsApp s Vašom potvrdom za {sent.to === 'Šejla' ? 'Šejlu' : 'Edvina'}.
+            Dodirnite <b>Pošalji</b> u WhatsAppu kako bismo je primili.
+          </p>
+          <a className="btn btn-gold btn-lg" href={sent.link} target="_blank" rel="noopener noreferrer">
+            <Icon name="whatsapp" size={20} /> Otvori WhatsApp ponovo
+          </a>
           <p className="thanks-sign">S ljubavlju, Šejla &amp; Edvin</p>
-          <button type="button" className="btn btn-outline" onClick={() => setStatus('idle')}>
-            Pošalji potvrdu za drugu osobu
+          <button type="button" className="btn btn-outline" onClick={reset}>
+            Potvrda za drugu osobu
           </button>
         </div>
       ) : (
-        <form className="form" ref={formRef} onSubmit={submit} noValidate>
+        <form className="form" ref={formRef} onSubmit={(e) => e.preventDefault()} noValidate>
           <label className="field" data-field="name">
             <span className="field-label">Ime i prezime</span>
             <input
@@ -166,21 +162,23 @@ export default function Rsvp() {
             <textarea name="note" value={note} onChange={(e) => setNote(e.target.value)} rows={3} maxLength={500} placeholder="Čestitke, želje ili napomena..." />
           </label>
 
-          <label className="hp" aria-hidden="true">
-            Web stranica
-            <input type="text" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
-          </label>
-
-          {status === 'error' && (
-            <div className="form-alert" role="alert">
-              <b>Potvrda NIJE spremljena.</b> {serverError} Molimo pokušajte ponovo.
-            </div>
-          )}
-
-          <button type="submit" className="btn btn-gold btn-lg" disabled={status === 'sending'}>
-            {status === 'sending' ? <span className="spinner" aria-hidden="true" /> : <Icon name="check" size={20} />}
-            {status === 'sending' ? 'Spremam potvrdu...' : 'Potvrdi dolazak'}
-          </button>
+          <div className="wa-send">
+            <p className="wa-title">Potvrdi dolazak putem WhatsAppa</p>
+            {CONTACTS.map((c, i) => (
+              <a
+                key={c.id}
+                className={`btn btn-lg ${i === 0 ? 'btn-gold' : 'btn-outline wa-alt'}`}
+                href={waLink(c.phone, message)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onSend(c)}
+                data-contact={c.id}
+              >
+                <Icon name="whatsapp" size={20} /> Potvrdi dolazak · {c.name}
+              </a>
+            ))}
+            <p className="wa-hint">Otvorit će se WhatsApp s gotovom porukom – samo dodirnite <b>Pošalji</b>.</p>
+          </div>
         </form>
       )}
     </div>
