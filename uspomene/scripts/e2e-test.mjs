@@ -3,7 +3,7 @@
 // Test sam pokreće API (port 8788) s praznom bazom; stranica: SITE (zadano: pokreće vite na 5173).
 import { createRequire } from 'node:module'
 import { execFileSync, spawn } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 import assert from 'node:assert/strict'
@@ -11,6 +11,8 @@ import { AwsClient } from 'aws4fetch'
 
 const require = createRequire(import.meta.url)
 const { chromium, devices } = require('playwright')
+const jsQR = require('jsqr')
+const { PNG } = require('pngjs')
 
 const root = resolve(import.meta.dirname, '..')
 const env = {}
@@ -43,6 +45,10 @@ process.on('exit', () => children.forEach((c) => c.kill()))
 await start([process.execPath, 'scripts/dev-api.mjs'], { BLOBS_DIR: mkdtempSync(resolve(tmpdir(), 'uspomene-e2e-')) }, /API:/)
 const SITE = process.env.SITE || 'http://localhost:5173'
 if (!process.env.SITE) await start([process.execPath, 'node_modules/vite/bin/vite.js', '--port', '5173', '--strictPort'], {}, /Local/)
+// ista stranica, ali kao da je objavljena na konačnoj adresi (za prave QR kodove)
+const FINAL = 'https://galerija-test.example'
+const SITE_FINAL = 'http://localhost:5174'
+await start([process.execPath, 'node_modules/vite/bin/vite.js', '--port', '5174', '--strictPort'], { VITE_PUBLIC_SITE_URL: FINAL }, /Local/)
 
 // Veći video (~60 MB) za provjeru napretka slanja
 const bigVideo = resolve(OUT, 'veliki-video.mp4')
@@ -60,6 +66,16 @@ function jpegSize(buf) {
   return null
 }
 
+// Izvuci slike kartica iz PDF-a i dekodiraj QR kodove (redom)
+function decodePdfQrs(pdf) {
+  const dir = mkdtempSync(resolve(tmpdir(), 'pdfimg-'))
+  execFileSync('pdfimages', ['-png', pdf, `${dir}/k`])
+  return readdirSync(dir).sort().map((f) => {
+    const img = PNG.sync.read(readFileSync(`${dir}/${f}`))
+    return jsQR(new Uint8ClampedArray(img.data), img.width, img.height)?.data || null
+  })
+}
+
 let n = 0
 const ok = (s) => console.log(`  ✔ ${s}`, ++n)
 const browser = await chromium.launch()
@@ -75,7 +91,6 @@ console.log('Šejla & Edvin · Uspomene · E2E test (mobilni prikaz)')
 const sejlaCtx = await browser.newContext({ ...devices['Pixel 7'], acceptDownloads: true })
 await sejlaCtx.addInitScript(() => {
   delete window.showSaveFilePicker // kao na telefonu
-  window.print = () => (window.__printed = true)
 })
 const sejla = await sejlaCtx.newPage()
 track(sejla, 'sejla')
@@ -90,25 +105,55 @@ await sejla.getByText('Prijavljeni: Šejla').waitFor()
 ok('Šejla: pogrešna šifra odbijena, prijava uspješna')
 
 await sejla.getByRole('tab', { name: 'Stolovi i QR' }).click()
-await sejla.locator('.generate input[type="number"]').fill('3')
-await sejla.getByRole('button', { name: 'Napravi spisak' }).click()
-await sejla.getByRole('button', { name: /Dodaj sto/ }).click()
-await sejla.getByPlaceholder('npr. Sto 7 ili Mladenački sto').last().fill('Mladenački sto')
-await sejla.getByRole('button', { name: 'Spremi stolove' }).click()
-await sejla.getByText('Spremljeno: 4 stolova').waitFor()
-assert.equal(await sejla.getByTestId('qr-item').count(), 5)
-assert.equal(await sejla.locator('.table-id').last().inputValue(), 'mladenacki-sto')
-ok('stolovi napravljeni i spremljeni kroz administraciju (3 + „Mladenački sto“)')
+await sejla.getByTestId('table-rows').waitFor()
+const labels = await sejla.locator('.table-row input[aria-label="Naziv stola"]').evaluateAll((els) => els.map((e) => e.value))
+assert.deepEqual(labels, Array.from({ length: 10 }, (_, i) => `Stol ${i + 1}`))
+ok('zadano 10 stolova: Stol 1 … Stol 10')
 
-const [zipDl] = await Promise.all([sejla.waitForEvent('download', { timeout: 60_000 }), sejla.getByTestId('qr-zip').click()])
-await zipDl.saveAs(`${OUT}/qr-kartice.zip`)
-const qrList = execFileSync('unzip', ['-l', `${OUT}/qr-kartice.zip`]).toString()
-assert.equal((qrList.match(/\.png/g) || []).length, 5, qrList)
-execFileSync('unzip', ['-o', '-q', `${OUT}/qr-kartice.zip`, '-d', `${OUT}/qr-kartice`])
-await sejla.getByRole('button', { name: /Štampaj sve kartice/ }).click()
-await sejla.waitForFunction(() => window.__printed === true && document.querySelectorAll('.print-sheet img').length === 5)
-await sejla.screenshot({ path: `${OUT}/1-admin-stolovi.png`, fullPage: true })
-ok('QR kartice: 5 kartica u ZIP-u (PNG 300 dpi) i priprema za štampu')
+// izmjena kroz administraciju (dodaj pa ukloni) – bez mijenjanja aplikacije
+await sejla.getByRole('button', { name: /Dodaj stol/ }).click()
+await sejla.getByPlaceholder('npr. Stol 7').last().fill('Mladenački stol')
+await sejla.getByRole('button', { name: 'Spremi stolove' }).click()
+await sejla.getByText('Spremljeno: 11 stolova').waitFor()
+assert.equal(await sejla.locator('.table-id').last().inputValue(), 'mladenacki-stol')
+await sejla.getByRole('button', { name: 'Ukloni Mladenački stol' }).click()
+await sejla.getByRole('button', { name: 'Spremi stolove' }).click()
+await sejla.getByText('Spremljeno: 10 stolova').waitFor()
+ok('stolovi se mijenjaju u administraciji (dodavanje, oznaka u linku, uklanjanje)')
+
+// privremena adresa → samo UZORAK bez QR kodova
+await sejla.getByTestId('address-temporary').waitFor()
+assert.equal(await sejla.locator('.qr-item canvas').count(), 0)
+const [sample] = await Promise.all([sejla.waitForEvent('download', { timeout: 60_000 }), sejla.getByTestId('pdf-a4').click()])
+assert.match(sample.suggestedFilename(), /UZORAK\.pdf$/)
+await sample.saveAs(`${OUT}/kartice-UZORAK-A4.pdf`)
+assert.match(execFileSync('pdfinfo', [`${OUT}/kartice-UZORAK-A4.pdf`]).toString(), /Pages:\s+3/)
+const sampleQrs = decodePdfQrs(`${OUT}/kartice-UZORAK-A4.pdf`)
+assert.equal(sampleQrs.filter(Boolean).length, 0, 'uzorak ne smije imati QR')
+ok('privremena adresa: PDF je UZORAK (3 stranice A4, 10 kartica) bez ijednog QR koda')
+
+// konačna adresa → pravi QR kodovi u PDF-u
+const finalPage = await sejlaCtx.newPage()
+track(finalPage, 'sejla-final')
+await finalPage.goto(`${SITE_FINAL}/admin`, { waitUntil: 'networkidle' })
+await finalPage.getByText('Prijavljeni: Šejla').waitFor() // ista prijava (kolačić vrijedi za cijeli host)
+await finalPage.getByRole('tab', { name: 'Stolovi i QR' }).click()
+await finalPage.getByTestId('address-final').waitFor()
+assert.equal(await finalPage.locator('.qr-item canvas').count(), 10)
+for (const [layout, pages] of [['a4', 3], ['a6', 10]]) {
+  const [dl] = await Promise.all([finalPage.waitForEvent('download', { timeout: 60_000 }), finalPage.getByTestId(`pdf-${layout}`).click()])
+  const path = `${OUT}/kartice-${layout.toUpperCase()}.pdf`
+  await dl.saveAs(path)
+  assert.match(execFileSync('pdfinfo', [path]).toString(), new RegExp(`Pages:\\s+${pages}\\b`))
+  const qrs = decodePdfQrs(path)
+  assert.deepEqual(qrs, Array.from({ length: 10 }, (_, i) => `${FINAL}/?sto=${i + 1}`), qrs.join(','))
+}
+const [png] = await Promise.all([finalPage.waitForEvent('download', { timeout: 60_000 }), finalPage.getByTestId('qr-zip').click()])
+await png.saveAs(`${OUT}/kartice-png.zip`)
+execFileSync('unzip', ['-o', '-q', `${OUT}/kartice-png.zip`, '-d', `${OUT}/kartice-png`])
+await finalPage.screenshot({ path: `${OUT}/1-admin-stolovi.png`, fullPage: true })
+await finalPage.close()
+ok('konačna adresa: PDF A4 (3 str.) i A6 (10 str.) – svih 10 QR kodova dekodirano u tačan link svog stola')
 
 // ================= GOST sa stola 2 (iPhone 13) =================
 const guestCtx = await browser.newContext({ ...devices['iPhone 13'] })
@@ -116,9 +161,9 @@ const guest = await guestCtx.newPage()
 track(guest, 'gost')
 await guest.goto(`${SITE}/?sto=2`, { waitUntil: 'networkidle' })
 await guest.getByTestId('table-badge').waitFor()
-assert.equal(await guest.getByTestId('table-badge').textContent(), 'Sto 2')
+assert.equal(await guest.getByTestId('table-badge').textContent(), 'Stol 2')
 await guest.screenshot({ path: `${OUT}/2-gost-naslovna.png` })
-ok('gost skenira QR stola 2 → stranica prikazuje „Sto 2“')
+ok('gost skenira QR stola 2 → stranica automatski prikazuje „Stol 2“')
 
 await guest.getByPlaceholder('npr. Amra i Kenan').fill('Amra i Kenan')
 await guest.getByTestId('file-input').setInputFiles([
@@ -159,24 +204,24 @@ await guest.locator('#galerija').scrollIntoViewIfNeeded()
 await guest.getByText('Još nema odobrenih uspomena').waitFor()
 ok('čestitka poslana; prije odobrenja galerija je prazna')
 
-// gost s drugog stola (Mladenački sto) – ista zajednička galerija
+// gost sa stola 10 – ista zajednička galerija
 const guest2Ctx = await browser.newContext({ ...devices['iPhone 13'] })
 const guest2 = await guest2Ctx.newPage()
 track(guest2, 'gost2')
-await guest2.goto(`${SITE}/?sto=mladenacki-sto`, { waitUntil: 'networkidle' })
-assert.equal(await guest2.getByTestId('table-badge').textContent(), 'Mladenački sto')
+await guest2.goto(`${SITE}/?sto=10`, { waitUntil: 'networkidle' })
+assert.equal(await guest2.getByTestId('table-badge').textContent(), 'Stol 10')
 await guest2.getByTestId('file-input').setInputFiles([resolve(FX, 'photo1.jpg')])
 await guest2.locator('#posalji .consent input').check()
 await guest2.getByRole('button', { name: /Pošalji 1 datoteku/ }).click()
 await guest2.locator('.file-tile[data-status="done"]').waitFor({ timeout: 30_000 })
-ok('gost s „Mladenačkog stola“ šalje u istu galeriju')
+ok('gost sa „Stol 10“ šalje u istu galeriju')
 
 // ================= ŠEJLA: moderacija =================
 await sejla.getByRole('tab', { name: /Na čekanju/ }).click()
 await sejla.locator('[data-testid="media-card"]').first().waitFor()
 await sejla.getByRole('button', { name: 'Osvježi' }).click()
 await sejla.waitForFunction(() => document.querySelectorAll('[data-testid="media-card"]').length === 6)
-await sejla.locator('select.select').selectOption({ label: 'Mladenački sto' })
+await sejla.locator('select.select').selectOption({ label: 'Stol 10' })
 await sejla.waitForFunction(() => document.querySelectorAll('[data-testid="media-card"]').length === 1)
 await sejla.locator('select.select').selectOption({ label: 'Svi stolovi' })
 await sejla.waitForFunction(() => document.querySelectorAll('[data-testid="media-card"]').length === 6)
@@ -191,10 +236,19 @@ await sejla.getByRole('button', { name: 'Odobri (6)' }).click()
 await sejla.getByText('Odobreno: 6.').waitFor({ timeout: 30_000 })
 await sejla.getByRole('tab', { name: /Čestitke/ }).click()
 await sejla.locator('[data-testid="wish-card"]').first().waitFor()
-assert.match(await sejla.locator('[data-testid="wish-card"]').first().textContent(), /Sto 2/)
+assert.match(await sejla.locator('[data-testid="wish-card"]').first().textContent(), /Stol 2/)
 await sejla.getByRole('button', { name: 'Objavi', exact: true }).click()
 await sejla.getByText('Čestitka objavljena.').waitFor()
 ok('Šejla pregledala i grupno odobrila 6 stavki i čestitku (sa oznakom stola)')
+
+// pregled po stolovima
+await sejla.getByRole('tab', { name: 'Stolovi i QR' }).click()
+await sejla.waitForFunction(() => document.querySelectorAll('.table-count')[1]?.textContent.trim() === '5 / 5')
+assert.equal((await sejla.locator('.table-count').nth(9).textContent()).trim(), '1 / 1')
+await sejla.getByRole('button', { name: 'Fotografije: Stol 10' }).click()
+await sejla.waitForFunction(() => document.querySelectorAll('[data-testid="media-card"]').length === 1)
+assert.equal(await sejla.locator('select.select').inputValue(), '10')
+ok('pregled po stolovima: Stol 2 – 5 poslano / 5 odobreno, Stol 10 – 1 / 1; otvaranje fotografija stola')
 
 // ================= GOST: galerija =================
 await guest.reload({ waitUntil: 'networkidle' })
@@ -202,7 +256,7 @@ await guest.locator('#galerija').scrollIntoViewIfNeeded()
 await guest.locator('.masonry-item').nth(5).waitFor()
 assert.equal(await guest.locator('.masonry-item').count(), 6)
 await guest.waitForFunction(() => [...document.querySelectorAll('.masonry-item img')].every((i) => i.complete && i.naturalWidth > 0))
-assert.match(await guest.locator('.masonry-item .by').allTextContents().then((t) => t.join('|')), /Mladenački sto/)
+assert.match(await guest.locator('.masonry-item .by').allTextContents().then((t) => t.join('|')), /Stol 10/)
 await guest.locator('#galerija').screenshot({ path: `${OUT}/5-gost-galerija.png` })
 const videoItem = guest.locator('.masonry-item', { has: guest.locator('.play') }).first()
 await videoItem.locator('button').click()
@@ -247,7 +301,7 @@ execFileSync('unzip', ['-o', '-q', `${OUT}/arhiva.zip`, '-d', `${OUT}/arhiva`])
 const bigInZip = zl.match(/videozapisi\/\S*veliki-video\.mp4/)[0]
 assert.equal(Buffer.compare(file(`${OUT}/arhiva/${bigInZip}`), file(bigVideo)), 0)
 const gpsInZip = zl.match(/fotografije\/\S*photo-gps\.jpg/)[0]
-assert.match(gpsInZip, /Sto_2/)
+assert.match(gpsInZip, /Stol_2/)
 assert.equal(Buffer.compare(file(`${OUT}/arhiva/${gpsInZip}`), file('photo-gps.jpg')), 0)
 assert.match(readFileSync(`${OUT}/arhiva/cestitke/cestitke.csv`, 'utf8'), /neka vam ljubav traje/)
 ok('kompletna ZIP arhiva: 4 fotografije + 2 videa (originali identični, s oznakom stola) + čestitke')

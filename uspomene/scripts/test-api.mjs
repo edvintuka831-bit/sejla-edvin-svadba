@@ -98,6 +98,8 @@ ok('Šejla i Edvin se prijavljuju (HttpOnly, SameSite=Strict kolačić)')
 
 // ---------- stolovi (mijenjaju se u administraciji)
 {
+  const def = await call('GET', '/api/config')
+  assert.deepEqual(def.data.tables, Array.from({ length: 10 }, (_, i) => ({ id: String(i + 1), label: `Stol ${i + 1}` })))
   const bad = await call('PUT', '/api/admin/tables', { tables: [{ id: 'Sto 1!', label: 'x' }] }, asAdmin(sejla.cookie))
   assert.equal(bad.status, 400)
   const tables = [
@@ -110,7 +112,7 @@ ok('Šejla i Edvin se prijavljuju (HttpOnly, SameSite=Strict kolačić)')
   const cfg = await call('GET', '/api/config')
   assert.deepEqual(cfg.data.tables, tables)
   assert.equal(cfg.data.maxVideoMB, 200)
-  ok('stolovi se mijenjaju u administraciji i odmah vide gostima')
+  ok('zadano Stol 1–10; stolovi se mijenjaju u administraciji i odmah vide gostima')
 }
 
 // ---------- upload
@@ -202,7 +204,10 @@ ok('lažna slika odbačena i obrisana; ostale čekaju odobrenje')
   const res = await fetch(dl.data.url)
   assert.match(res.headers.get('content-disposition'), /attachment/)
   assert.equal(Buffer.compare(Buffer.from(await res.arrayBuffer()), file('photo-gps.jpg')), 0)
-  ok('admin: statistika, oznaka stola, filteri, preuzimanje identičnog originala')
+  const ts = await call('GET', '/api/admin/table-stats', null, { cookie: sejla.cookie })
+  assert.equal(ts.data.sent['2'], 3)
+  assert.equal(ts.data.approved['2'] || 0, 0)
+  ok('admin: statistika, oznaka stola, filteri, pregled po stolovima, preuzimanje identičnog originala')
 }
 {
   const r = await post('/api/admin/action', { action: 'approve', ids: [idOf('a'), idOf('b'), idOf('c')] }, asAdmin(edvin.cookie))

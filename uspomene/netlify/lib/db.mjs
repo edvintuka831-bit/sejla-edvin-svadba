@@ -12,7 +12,8 @@
 //   sz/{id}/{bajtova}              zauzeće prostora po datoteci
 //   rate/{radnja}/{gost}/{prozor}/{vrijeme}{nasumično}~{količina}   ograničenja slanja
 //   sec/login/{admin}/{gost}/{prozor}/{nasumično}          pogrešne prijave
-//   settings/tables                stolovi (mijenjaju se u administraciji)
+//   settings/tables                stolovi (mijenjaju se u administraciji; zadano Stol 1–10)
+//   tbl/{stol}/{id}, tapp/{stol}/{id}   poslano / odobreno po stolu (pregled po stolovima)
 import { randomBytes } from 'node:crypto'
 import { getStore } from '@netlify/blobs'
 
@@ -61,6 +62,8 @@ export async function setStatus(kind, record, status) {
 // "rev" je obrnuto vrijeme odobrenja → abecedni redoslijed = najnovije prvo
 export const revTime = (ms = Date.now()) => String(10 ** 13 - ms).padStart(13, '0')
 export const galleryKeys = (rec) => (rec.galRev ? [`gal/all/${rec.galRev}-${rec.id}`, `gal/${rec.kind}/${rec.galRev}-${rec.id}`] : [])
+export const tableKey = (rec) => `tbl/${rec.tableId || '-'}/${rec.id}`
+export const tableApprovedKey = (rec) => `tapp/${rec.tableId || '-'}/${rec.id}`
 export const galleryIds = async (sub) => (await listKeys(`${sub}/`)).map((k) => k.slice(k.indexOf('-', sub.length + 1) + 1))
 
 // ------------------------------------------------ zauzeće prostora
@@ -98,6 +101,9 @@ export async function clearEvents(prefix) {
 }
 
 // ------------------------------------------------ stolovi
+// Dogovoreno: 10 stolova. Dok administratori ne spreme vlastiti spisak, važe ovi.
+export const DEFAULT_TABLES = Array.from({ length: 10 }, (_, i) => ({ id: String(i + 1), label: `Stol ${i + 1}` }))
+
 export async function getTables() {
-  return (await getJSON('settings/tables'))?.tables || []
+  return (await getJSON('settings/tables'))?.tables || DEFAULT_TABLES
 }

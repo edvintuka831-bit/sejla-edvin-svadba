@@ -1,7 +1,7 @@
 # Šejla & Edvin · Wedding Memories (bez Supabasea)
 
 Zajednička galerija fotografija, videozapisa i čestitki za **23.01.2027.**, **ADS Caffe & Restaurant**.
-Gosti skeniraju QR kod svog stola i odmah šalju, bez registracije. Sve ide u **jednu zajedničku galeriju**,
+Gosti skeniraju QR kod svog stola (**Stol 1 – Stol 10**) i odmah šalju, bez registracije; stranica automatski prepoznaje stol. Sve ide u **jednu zajedničku galeriju**,
 a gosti vide **samo ono što odobre Šejla ili Edvin**.
 
 > Ovo je folder `uspomene/` i zasebna Netlify stranica. **Digitalna pozivnica** (korijen repozitorija) i ranija
@@ -45,7 +45,11 @@ a gosti vide **samo ono što odobre Šejla ili Edvin**.
 - **Statistika:** na čekanju, odobreno, odbijeno, poslano i zauzet prostor.
 - **Moderacija:** pregled u punoj veličini, odobri / odbij / obriši (pojedinačno ili grupno), filter po stolu i vrsti.
 - **Čestitke:** objavi / odbij / obriši.
-- **Stolovi i QR:** dodavanje, preimenovanje i brisanje stolova, ili „napravi 1–N“, **bez mijenjanja aplikacije**. Kartice za štampu imaju oznaku stola: štampa 4 kartice A6 na A4 ili ZIP sa PNG karticama na 300 dpi.
+- **Stolovi i QR:**
+  - zadano je **10 stolova (Stol 1 – Stol 10)**; dodavanje, preimenovanje i brisanje radi se **bez mijenjanja aplikacije**;
+  - **pregled po stolovima**: koliko je poslano i odobreno sa svakog stola, uz dugme koje otvara fotografije tog stola;
+  - **PDF za štampu**: A4 s 4 kartice po stranici i oznakama za rezanje (kućni printer), ili A6 s jednom karticom po stranici (štamparija); uz to i PNG kartice na 300 dpi;
+  - **pravi QR kodovi se prave samo s konačne adrese** (https, ne lokalne ni privremene Netlify adrese). Do tada svi izvozi daju **UZORAK** bez QR koda, s oznakom „UZORAK – NIJE ZA ŠTAMPU“.
 - **Preuzimanje:** originali pojedinačno i **kompletna ZIP arhiva** (originali u punoj kvaliteti, s oznakom stola i imenom gosta, plus čestitke u CSV i TXT). Na telefonu se velika arhiva dijeli na dijelove do 700 MB.
 - **Sistem:** provjera podešavanja, privatnosti pohrane, zauzeća i procjena mjesečnog troška.
 
@@ -62,6 +66,22 @@ a gosti vide **samo ono što odobre Šejla ili Edvin**.
 | Zaglavlja | CSP, HSTS, X-Frame-Options, nosniff, `noindex` za `/admin`, a `robots.txt` zabranjuje indeksiranje. |
 
 ---
+
+## 3a. QR kartice za stolove
+
+Na svakoj kartici (bijelo-zlatni stil, A6 105 × 148 mm) piše:
+- **Šejla & Edvin**
+- **23.01.2027.**
+- QR kod
+- „Skenirajte QR kod i podijelite najljepše uspomene s nama.“
+- **STOL [broj]**
+
+QR stola vodi na `https://<konačna-adresa>/?sto=<broj>`.
+**Uzorci** (bez QR koda, za odobrenje izgleda) su u folderu [`kartice/`](kartice/):
+- `…-A4-UZORAK.pdf`: 3 stranice A4 s oznakama za rezanje;
+- `…-A6-UZORAK.pdf`: 10 stranica za štampariju.
+
+Prave PDF-ove s QR kodovima pravite u administraciji kada je stranica na konačnoj adresi (poglavlje 5, korak 7).
 
 ## 4. Cloudflare R2: podešavanje (⚠ ručno, jednom)
 
@@ -121,9 +141,12 @@ Na **dash.cloudflare.com** (radi i u pregledniku na tabletu). Nazivi u Cloudflar
    - u R2 CORS pravilu (korak 4.3).
    Zatim jednom **Trigger deploy**.
 6. ⚠ Otvorite `…/admin` → prijava kao Šejla → **Sistem**: sve stavke moraju biti zelene.
-7. ⚠ **Stolovi i QR** → upišite broj stolova (ili nazive) → **Spremi stolove** → **Štampaj sve kartice**
-   (ili ZIP s PNG karticama za štampariju). Štampajte **tek kada je adresa konačna.**
-   Uvijek postoji i **opšti QR** (bez stola) za ulaz i bar.
+7. ⚠ **Stolovi i QR**:
+   - provjerite spisak (zadano Stol 1 – Stol 10);
+   - mora stajati zelena poruka **„Adresa je konačna“**;
+   - **PDF A4** (kućni printer) ili **PDF A6** (štamparija);
+   - **prije štampe skenirajte bar jednu karticu telefonom**: mora se otvoriti galerija sa „Stol N“.
+   Postoji i opšti QR bez stola (npr. za ulaz).
 
 ## 6. ⚠ Provjera prije svadbe
 
@@ -135,7 +158,7 @@ Na **dash.cloudflare.com** (radi i u pregledniku na tabletu). Nazivi u Cloudflar
    - da izmijenjen link ne otvara tuđu datoteku;
    - ograničenja veličine.
 2. **Pravi telefoni** (obavezno, na objavljenoj adresi):
-   1. iPhone (Safari): kamerom skenirajte QR kartice „Sto 1“ → na stranici piše „Sto 1“.
+   1. iPhone (Safari): kamerom skenirajte odštampanu karticu „STOL 1“ → na stranici piše „Stol 1“. Ponovite za još 2–3 stola.
    2. Pošaljite 3 fotografije i **jedan duži video (100–200 MB)** → pratite procenat → sve „Poslano“.
    3. Android (Chrome): skenirajte drugi sto, pošaljite fotografiju direktno iz kamere i čestitku.
    4. U `/admin` na telefonu (Šejla): **Na čekanju** → pregled → **Odobri sve** → objavite čestitku.
@@ -172,10 +195,13 @@ s istim potpisanim linkovima i CORS pravilima.
   - čestitke, izvoz, provjera sistema;
   - **10 istovremenih slanja i istovremeno odobravanje oba administratora bez gubitka**;
   - ograničenja slanja, odjava.
-- `npm run test:e2e`: **15/15** kroz Chromium u mobilnom prikazu (gost iPhone 13, admin Pixel 7), više uzastopnih prolaza:
-  - stolovi napravljeni u adminu, 5 QR kartica u ZIP-u i priprema za štampu;
-  - gost sa „Sto 2“ šalje 5 datoteka uključujući **video od 58 MB uz napredak u %**, a lažna slika je odbijena;
-  - gost s „Mladenačkog stola“ šalje u istu galeriju;
+- `npm run test:e2e`: **18/18** kroz Chromium u mobilnom prikazu (gost iPhone 13, admin Pixel 7), više uzastopnih prolaza:
+  - zadanih 10 stolova; izmjena stolova kroz admin;
+  - na privremenoj adresi PDF je samo UZORAK, bez ijednog QR koda;
+  - na „konačnoj“ adresi PDF A4 (3 str.) i A6 (10 str.): **svih 10 QR kodova izvučeno iz PDF-a i dekodirano u tačan link svog stola**;
+  - pregled po stolovima (poslano / odobreno, otvaranje fotografija stola);
+  - gost sa „Stol 2“ šalje 5 datoteka uključujući **video od 58 MB uz napredak u %**, a lažna slika je odbijena;
+  - gost sa „Stol 10“ šalje u istu galeriju;
   - Šejla filtrira po stolu i grupno odobrava;
   - gost vidi sve, a video se reproducira;
   - pregledi su bez EXIF/GPS;
@@ -184,7 +210,7 @@ s istim potpisanim linkovima i CORS pravilima.
   - provjera sistema pokazuje 0,00 $.
 - Ručno:
   - video od **199 MB** poslan i provjeren;
-  - svih 5 QR kartica dekodirano u tačne linkove stolova.
+  - uzorci PDF-a pregledani vizuelno (`kartice/`).
 
 **Nije testirano:**
 - pravi iPhone i Android uređaji, Safari (WebKit);

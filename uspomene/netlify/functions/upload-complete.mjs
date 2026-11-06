@@ -2,7 +2,7 @@
 // Server provjerava šta je STVARNO stiglo u R2: postojanje, veličinu i sadržaj
 // (magični bajtovi). Tek tada datoteka čeka odobrenje. Sve sumnjivo se briše.
 import { HttpError, ID_RE, detectType, handle, json, readJson, settings, sha256, typeMatches } from '../lib/core.mjs'
-import { del, getMany, setMarker, setStatus, usageKey } from '../lib/db.mjs'
+import { del, getMany, setMarker, setStatus, tableKey, usageKey } from '../lib/db.mjs'
 import { deleteObjects, headObject, readHead } from '../lib/r2.mjs'
 
 async function discard(rec) {
@@ -38,7 +38,7 @@ async function verify(rec) {
   }
   rec.storedBytes = original.size + extraBytes
   rec.completedAt = new Date().toISOString()
-  await setMarker(usageKey(rec.id, rec.storedBytes))
+  await Promise.all([setMarker(usageKey(rec.id, rec.storedBytes)), setMarker(tableKey(rec))])
   await setStatus('media', rec, 'pending')
   return { ok: true }
 }

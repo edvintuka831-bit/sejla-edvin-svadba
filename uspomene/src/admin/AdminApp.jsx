@@ -112,6 +112,7 @@ export default function AdminApp() {
   const [tab, setTab] = useState('pending')
   const [stats, setStats] = useState(null)
   const [tables, setTables] = useState([])
+  const [tableFilter, setTableFilter] = useState('')
 
   useEffect(() => {
     adminGet('me')
@@ -156,7 +157,7 @@ export default function AdminApp() {
       <Stats stats={stats} />
       <nav className="admin-tabs" role="tablist">
         {TABS.map((t) => (
-          <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)}>
+          <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? 'active' : ''} onClick={() => { setTableFilter(''); setTab(t.id) }}>
             {t.label}
             {t.id === 'pending' && stats?.pending > 0 && <span className="dot">{stats.pending}</span>}
             {t.id === 'wishes' && stats?.wishes.pending > 0 && <span className="dot">{stats.wishes.pending}</span>}
@@ -164,9 +165,9 @@ export default function AdminApp() {
         ))}
       </nav>
       <main className="admin-main">
-        {['pending', 'approved', 'rejected'].includes(tab) && <MediaPanel key={tab} status={tab} tables={tables} onChanged={refresh} />}
+        {['pending', 'approved', 'rejected'].includes(tab) && <MediaPanel key={`${tab}-${tableFilter}`} status={tab} tables={tables} initialTable={tableFilter} onChanged={refresh} />}
         {tab === 'wishes' && <WishesPanel onChanged={refresh} />}
-        {tab === 'tables' && <TablesPanel tables={tables} onSaved={setTables} />}
+        {tab === 'tables' && <TablesPanel tables={tables} onSaved={setTables} onOpenTable={(id) => { setTableFilter(id); setTab('approved') }} />}
         {tab === 'download' && <DownloadPanel />}
         {tab === 'system' && <SystemPanel />}
       </main>

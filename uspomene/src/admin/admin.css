@@ -97,7 +97,12 @@
 .generate label { display: grid; gap: 4px; font-size: 14px; color: var(--ink-soft); }
 .generate input { width: 110px; border: 1px solid var(--beige); border-radius: 10px; padding: 8px 10px; font-size: 17px; background: #fff; }
 .table-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 420px; overflow: auto; }
-.table-row { display: grid; grid-template-columns: 1fr 96px 44px; gap: 8px; align-items: center; }
+.table-row { display: grid; grid-template-columns: 1fr 64px 52px 44px 44px; gap: 6px; align-items: center; }
+.table-count { font-size: 14px; color: var(--ink-soft); text-align: center; white-space: nowrap; }
+.qr-pending { width: 120px; height: 120px; display: grid; place-items: center; padding: 10px; border: 1.5px dashed var(--champagne); border-radius: 10px; font-size: 13px; line-height: 1.3; color: var(--gold-deep); }
+.generate-box summary { cursor: pointer; color: var(--gold-deep); font-size: 16px; padding: 4px 0; }
+.generate-box .generate { margin-top: 8px; }
+.muted.small, .small { font-size: 15px; }
 .table-row input { padding: 10px 12px; font-size: 17px; }
 .table-row .table-id { font-family: ui-monospace, monospace; font-size: 15px; color: var(--ink-soft); }
 
@@ -113,15 +118,3 @@
 .checks li.bad { background: var(--bad-bg); color: var(--bad); }
 .checks li span { display: grid; }
 .checks li small { font-size: 14px; opacity: 0.85; word-break: break-word; }
-
-/* ---- štampa QR kartica: 4 kartice A6 na A4 ---- */
-.print-sheet { display: none; }
-@media print {
-  @page { size: A4 portrait; margin: 0; }
-  body { background: #fff !important; }
-  body * { visibility: hidden; }
-  .print-sheet, .print-sheet * { visibility: visible; }
-  .print-sheet { display: grid; position: absolute; inset: 0 auto auto 0; width: 210mm; grid-template-columns: 105mm 105mm; grid-auto-rows: 148.5mm; }
-  .print-sheet img { width: 105mm; height: 148.5mm; object-fit: contain; break-inside: avoid; }
-  .petals { display: none; }
-}

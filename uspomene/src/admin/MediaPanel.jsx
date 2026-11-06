@@ -64,7 +64,7 @@ function ActionButtons({ item, onAction, busy }) {
   )
 }
 
-export default function MediaPanel({ status, tables = [], onChanged }) {
+export default function MediaPanel({ status, tables = [], initialTable = '', onChanged }) {
   const [rows, setRows] = useState([])
   const [count, setCount] = useState(0)
   const [page, setPage] = useState(0)
@@ -74,7 +74,7 @@ export default function MediaPanel({ status, tables = [], onChanged }) {
   const [message, setMessage] = useState(null)
   const [viewer, setViewer] = useState(null)
   const [kind, setKind] = useState('all')
-  const [table, setTable] = useState('')
+  const [table, setTable] = useState(initialTable)
 
   const load = useCallback(async () => {
     setLoading(true)

@@ -1,7 +1,7 @@
 // /api/admin/* – administracija (samo Šejla i Edvin)
 import { HttpError, ID_RE, clientHash, cleanName, handle, json, readJson, settings } from '../lib/core.mjs'
 import { ADMINS, configStatus, currentAdmin, login, logoutCookie, requireAdmin } from '../lib/auth.mjs'
-import { del, galleryIds, galleryKeys, getJSON, getMany, getTables, getUsage, idsWithStatus, revTime, setJSON, setMarker, setStatus, usageKey } from '../lib/db.mjs'
+import { del, galleryIds, galleryKeys, getJSON, getMany, getTables, getUsage, idsWithStatus, listKeys, revTime, setJSON, setMarker, setStatus, tableApprovedKey, tableKey, usageKey } from '../lib/db.mjs'
 import { checkAnonymousDenied, checkBucket, deleteObjects, presignDownload, presignView, r2Configured } from '../lib/r2.mjs'
 
 const GB = 1024 ** 3
@@ -43,7 +43,7 @@ function publicKeys(rec) {
 // Svaka stavka ima vlastite zapise, pa se Šejla i Edvin ne mogu međusobno pregaziti.
 
 async function unpublish(rec) {
-  await Promise.all(galleryKeys(rec).map(del))
+  await Promise.all([...galleryKeys(rec), tableApprovedKey(rec)].map(del))
   rec.galRev = null
   rec.publicKeys = null
 }
@@ -62,7 +62,7 @@ async function mediaAction(action, ids, admin) {
             rec.galRev = revTime()
             Object.assign(rec, { reviewedAt: now, reviewedBy: admin.name })
             await setStatus('media', rec, 'approved')
-            await Promise.all(galleryKeys(rec).map(setMarker))
+            await Promise.all([...galleryKeys(rec), tableApprovedKey(rec)].map(setMarker))
           }
         } else if (action === 'reject') {
           await unpublish(rec)
@@ -71,7 +71,7 @@ async function mediaAction(action, ids, admin) {
         } else {
           await unpublish(rec)
           await deleteObjects([rec.originalKey, rec.previewKey, rec.thumbKey])
-          await Promise.all([del(`media/${rec.id}`), del(`idx/${rec.status}/${rec.id}`), del(usageKey(rec.id, rec.storedBytes))])
+          await Promise.all([del(`media/${rec.id}`), del(`idx/${rec.status}/${rec.id}`), del(usageKey(rec.id, rec.storedBytes)), del(tableKey(rec))])
         }
         results[rec.id] = { ok: true }
       } catch (err) {
@@ -240,6 +240,13 @@ export default handle(async (req, context) => {
       wishes = await getMany('wish', wIds)
     }
     return json({ total: ids.length, items, wishes, more: offset + 150 < ids.length })
+  }
+
+  // Pregled po stolovima: koliko je poslano i odobreno sa svakog stola
+  if (route === 'table-stats' && req.method === 'GET') {
+    const count = (keys) => keys.reduce((m, k) => ((m[k.split('/')[1]] = (m[k.split('/')[1]] || 0) + 1), m), {})
+    const [sent, approved] = await Promise.all([listKeys('tbl/'), listKeys('tapp/')])
+    return json({ sent: count(sent), approved: count(approved) })
   }
 
   if (route === 'tables') {

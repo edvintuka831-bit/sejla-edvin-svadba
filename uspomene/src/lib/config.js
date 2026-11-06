@@ -15,3 +15,14 @@ export const DEFAULT_CONFIG = { maxImageMB: 30, maxVideoMB: 200, maxFilesPerBatc
 
 export const siteBase = () => PUBLIC_SITE_URL || window.location.origin
 export const tableUrl = (id) => `${siteBase()}/?sto=${encodeURIComponent(id)}`
+
+// Pravi QR kodovi se prave SAMO za konačnu javnu adresu (https, bez lokalnih i privremenih
+// Netlify adresa). Do tada se prave uzorci kartica bez QR koda.
+export function isFinalAddress(base) {
+  try {
+    const u = new URL(base)
+    return u.protocol === 'https:' && !/^(localhost|127\.|\d+\.\d+\.\d+\.\d+$)/.test(u.hostname) && !u.hostname.includes('--')
+  } catch {
+    return false
+  }
+}
