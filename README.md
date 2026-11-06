@@ -4,6 +4,8 @@ Luksuzna 3D digitalna pozivnica za goste koji dolaze kod mladoženje Edvina, oda
 Ovo je **zaseban projekat** (repozitorij `sejla-edvin-svadba`) i **zasebna Netlify stranica**.
 Ranije pozivnice (repozitorij `Vjencanje-sejla-edvin`) nisu mijenjane i rade dalje na svojim adresama.
 
+> **Novo:** `memories/` – zaseban projekat **Wedding Memories** (galerija fotografija, videa i čestitki gostiju sa moderacijom, Supabase + Netlify). Upute: [`memories/README.md`](memories/README.md).
+
 ## Šta pozivnica sadrži
 
 | Dio | Opis |

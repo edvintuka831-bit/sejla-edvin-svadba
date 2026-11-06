@@ -99,19 +99,25 @@ export default handle(async (req) => {
     throw new HttpError(403, 'Slanje nije pronađeno ili je isteklo.')
   }
 
+  // Provjera teče paralelno (po 6), da bi i 20 datoteka stalo u vremensko ograničenje funkcije
   const results = {}
-  for (const row of rows) {
-    if (row.status !== 'uploading') {
-      results[row.id] = { ok: true }
-      continue
-    }
-    try {
-      results[row.id] = await verifyRow(supabase, row)
-    } catch (err) {
-      console.error('verify', row.id, err)
-      results[row.id] = { ok: false, error: 'Provjera datoteke nije uspjela. Pokušajte ponovo.' }
+  const queue = [...rows]
+  const worker = async () => {
+    while (queue.length) {
+      const row = queue.shift()
+      if (row.status !== 'uploading') {
+        results[row.id] = { ok: true }
+        continue
+      }
+      try {
+        results[row.id] = await verifyRow(supabase, row)
+      } catch (err) {
+        console.error('verify', row.id, err)
+        results[row.id] = { ok: false, error: 'Provjera datoteke nije uspjela. Pokušajte ponovo.' }
+      }
     }
   }
+  await Promise.all(Array.from({ length: 6 }, worker))
   for (const id of ids) results[id] ??= { ok: false, error: 'Datoteka nije pronađena.' }
 
   return json({ results })
