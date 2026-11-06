@@ -7,7 +7,9 @@ import { HttpError, env } from './core.mjs'
 
 function cfg() {
   const accountId = env('R2_ACCOUNT_ID')
-  const endpoint = env('R2_ENDPOINT', accountId ? `https://${accountId}.r2.cloudflarestorage.com` : '').replace(/\/$/, '')
+  // Bucket napravljen s jurisdikcijom "European Union" ima posebnu adresu (.eu.)
+  const jurisdiction = env('R2_JURISDICTION').toLowerCase() === 'eu' ? '.eu' : ''
+  const endpoint = env('R2_ENDPOINT', accountId ? `https://${accountId}${jurisdiction}.r2.cloudflarestorage.com` : '').replace(/\/$/, '')
   return {
     endpoint,
     bucket: env('R2_BUCKET'),

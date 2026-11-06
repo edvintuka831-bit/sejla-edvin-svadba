@@ -1,7 +1,7 @@
 // /api/admin/* – administracija (samo Šejla i Edvin)
 import { HttpError, ID_RE, clientHash, cleanName, handle, json, readJson, settings } from '../lib/core.mjs'
 import { ADMINS, configStatus, currentAdmin, login, logoutCookie, requireAdmin } from '../lib/auth.mjs'
-import { addUsage, del, getJSON, getMany, getTables, getUsage, idsWithStatus, mutateJSON, setJSON, setStatus } from '../lib/db.mjs'
+import { del, galleryIds, galleryKeys, getJSON, getMany, getTables, getUsage, idsWithStatus, revTime, setJSON, setMarker, setStatus, usageKey } from '../lib/db.mjs'
 import { checkAnonymousDenied, checkBucket, deleteObjects, presignDownload, presignView, r2Configured } from '../lib/r2.mjs'
 
 const GB = 1024 ** 3
@@ -26,84 +26,60 @@ async function withViewUrls(rec) {
   }
 }
 
-function publicEntry(rec, approvedAt) {
-  const entry = {
-    id: rec.id,
-    kind: rec.kind,
-    guestName: rec.guestName,
-    tableLabel: rec.tableLabel,
-    width: rec.width,
-    height: rec.height,
-    duration: rec.duration,
-    approvedAt,
-  }
-  if (rec.kind === 'image') {
-    // U galeriju idu samo pregledi napravljeni u pregledniku (bez EXIF/GPS).
-    let preview = rec.previewKey
-    if (!preview) {
-      if (!BROWSER_IMAGES.includes(rec.mimeType)) {
-        throw new HttpError(422, `„${rec.originalName}“ nema pregled za galeriju (format ${rec.mimeType}). Original možete preuzeti, ali se ne objavljuje da ne bi otkrio skrivene podatke (npr. lokaciju).`)
-      }
-      preview = rec.originalKey
+// Šta gost smije vidjeti: kod slike SAMO pregled napravljen u pregledniku (bez EXIF/GPS)
+function publicKeys(rec) {
+  if (rec.kind === 'video') return { videoKey: rec.originalKey, thumbKey: rec.thumbKey }
+  let preview = rec.previewKey
+  if (!preview) {
+    if (!BROWSER_IMAGES.includes(rec.mimeType)) {
+      throw new HttpError(422, `„${rec.originalName}“ nema pregled za galeriju (format ${rec.mimeType}). Original možete preuzeti, ali se ne objavljuje da ne bi otkrio skrivene podatke (npr. lokaciju).`)
     }
-    entry.previewKey = preview
-    entry.thumbKey = rec.thumbKey || preview
-  } else {
-    entry.videoKey = rec.originalKey
-    entry.thumbKey = rec.thumbKey
+    preview = rec.originalKey // PNG/WEBP bez pregleda
   }
-  return entry
+  return { previewKey: preview, thumbKey: rec.thumbKey || preview }
 }
 
 // ---------------------------------------------------------------- moderacija
+// Svaka stavka ima vlastite zapise, pa se Šejla i Edvin ne mogu međusobno pregaziti.
+
+async function unpublish(rec) {
+  await Promise.all(galleryKeys(rec).map(del))
+  rec.galRev = null
+  rec.publicKeys = null
+}
 
 async function mediaAction(action, ids, admin) {
   const records = await getMany('media', ids)
   const results = {}
   const now = new Date().toISOString()
-  const toPublish = []
-  const toUnpublish = []
-
-  for (const rec of records) {
-    try {
-      if (rec.status === 'uploading') throw new HttpError(409, 'Datoteka se još šalje.')
-      if (action === 'approve') {
-        if (rec.status !== 'approved') toPublish.push({ rec, entry: publicEntry(rec, now) })
-      } else {
-        toUnpublish.push(rec)
-      }
-      results[rec.id] = { ok: true }
-    } catch (err) {
-      results[rec.id] = { ok: false, error: err instanceof HttpError ? err.message : 'Radnja nije uspjela.' }
-    }
-  }
-
-  // 1. javni spisak galerije (jedan siguran upis za sve stavke)
-  if (toPublish.length || toUnpublish.length) {
-    const remove = new Set(toUnpublish.map((r) => r.id))
-    await mutateJSON('pub/media', { items: [] }, (v) => {
-      const items = v.items.filter((m) => !remove.has(m.id) && !toPublish.some((p) => p.rec.id === m.id))
-      return { items: [...toPublish.map((p) => p.entry).reverse(), ...items] }
-    })
-  }
-
-  // 2. zapisi
-  await Promise.all([
-    ...toPublish.map(async ({ rec }) => {
-      Object.assign(rec, { reviewedAt: now, reviewedBy: admin.name })
-      await setStatus('media', rec, 'approved')
-    }),
-    ...toUnpublish.map(async (rec) => {
-      if (action === 'reject') {
-        Object.assign(rec, { reviewedAt: now, reviewedBy: admin.name })
-        await setStatus('media', rec, 'rejected')
-      } else {
-        await deleteObjects([rec.originalKey, rec.previewKey, rec.thumbKey])
-        await Promise.all([del(`media/${rec.id}`), del(`idx/${rec.status}/${rec.id}`)])
-        await addUsage(-(rec.storedBytes || rec.size), -1)
+  await Promise.all(
+    records.map(async (rec) => {
+      try {
+        if (rec.status === 'uploading') throw new HttpError(409, 'Datoteka se još šalje.')
+        if (action === 'approve') {
+          if (rec.status !== 'approved') {
+            rec.publicKeys = publicKeys(rec)
+            rec.galRev = revTime()
+            Object.assign(rec, { reviewedAt: now, reviewedBy: admin.name })
+            await setStatus('media', rec, 'approved')
+            await Promise.all(galleryKeys(rec).map(setMarker))
+          }
+        } else if (action === 'reject') {
+          await unpublish(rec)
+          Object.assign(rec, { reviewedAt: now, reviewedBy: admin.name })
+          await setStatus('media', rec, 'rejected')
+        } else {
+          await unpublish(rec)
+          await deleteObjects([rec.originalKey, rec.previewKey, rec.thumbKey])
+          await Promise.all([del(`media/${rec.id}`), del(`idx/${rec.status}/${rec.id}`), del(usageKey(rec.id, rec.storedBytes))])
+        }
+        results[rec.id] = { ok: true }
+      } catch (err) {
+        if (!(err instanceof HttpError)) console.error(action, rec.id, err)
+        results[rec.id] = { ok: false, error: err instanceof HttpError ? err.message : 'Radnja nije uspjela. Pokušajte ponovo.' }
       }
     }),
-  ])
+  )
   for (const id of ids) results[id] ??= { ok: false, error: 'Stavka nije pronađena.' }
   return results
 }
@@ -111,26 +87,22 @@ async function mediaAction(action, ids, admin) {
 async function wishAction(action, ids, admin) {
   const records = await getMany('wish', ids)
   const now = new Date().toISOString()
-  const approve = action === 'wish-approve'
-  const ids_ = new Set(records.map((r) => r.id))
-  await mutateJSON('pub/wishes', { items: [] }, (v) => {
-    const items = v.items.filter((w) => !ids_.has(w.id))
-    const added = approve
-      ? records.map((r) => ({ id: r.id, guestName: r.guestName, message: r.message, tableLabel: r.tableLabel, approvedAt: now }))
-      : []
-    return { items: [...added, ...items] }
-  })
   await Promise.all(
     records.map(async (rec) => {
+      if (rec.galRev) await del(`galw/${rec.galRev}-${rec.id}`)
+      rec.galRev = null
       if (action === 'wish-delete') {
         await Promise.all([del(`wish/${rec.id}`), del(`widx/${rec.status}/${rec.id}`)])
-      } else {
-        Object.assign(rec, { reviewedAt: now, reviewedBy: admin.name })
-        await setStatus('wish', rec, approve ? 'approved' : 'rejected')
+        return
       }
+      Object.assign(rec, { reviewedAt: now, reviewedBy: admin.name })
+      if (action === 'wish-approve') rec.galRev = revTime()
+      await setStatus('wish', rec, action === 'wish-approve' ? 'approved' : 'rejected')
+      if (rec.galRev) await setMarker(`galw/${rec.galRev}-${rec.id}`)
     }),
   )
-  return Object.fromEntries(ids.map((id) => [id, ids_.has(id) ? { ok: true } : { ok: false, error: 'Nije pronađeno.' }]))
+  const found = new Set(records.map((r) => r.id))
+  return Object.fromEntries(ids.map((id) => [id, found.has(id) ? { ok: true } : { ok: false, error: 'Nije pronađeno.' }]))
 }
 
 // ---------------------------------------------------------------- stolovi
@@ -172,7 +144,7 @@ export default handle(async (req, context) => {
   const admin = requireAdmin(req)
 
   if (route === 'stats' && req.method === 'GET') {
-    const [pending, approved, rejected, wp, wa, wr, usage, pub] = await Promise.all([
+    const [pending, approved, rejected, wp, wa, wr, usage, photos, videos] = await Promise.all([
       idsWithStatus('idx', 'pending'),
       idsWithStatus('idx', 'approved'),
       idsWithStatus('idx', 'rejected'),
@@ -180,14 +152,14 @@ export default handle(async (req, context) => {
       idsWithStatus('widx', 'approved'),
       idsWithStatus('widx', 'rejected'),
       getUsage(),
-      getJSON('pub/media'),
+      galleryIds('gal/image'),
+      galleryIds('gal/video'),
     ])
-    const items = pub?.items || []
     return json({
       pending: pending.length,
       approved: approved.length,
-      approvedPhotos: items.filter((m) => m.kind === 'image').length,
-      approvedVideos: items.filter((m) => m.kind === 'video').length,
+      approvedPhotos: photos.length,
+      approvedVideos: videos.length,
       rejected: rejected.length,
       wishes: { pending: wp.length, approved: wa.length, rejected: wr.length },
       usage,

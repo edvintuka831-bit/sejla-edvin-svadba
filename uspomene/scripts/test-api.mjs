@@ -251,6 +251,32 @@ ok('lažna slika odbačena i obrisana; ostale čekaju odobrenje')
   ok('izvoz svih originala za arhivu; provjera sistema: sve u redu, trošak 0 $')
 }
 
+// ---------- istovremeni rad: 10 slanja odjednom, Šejla i Edvin odobravaju istovremeno
+{
+  const before = (await call('GET', '/api/admin/stats', null, { cookie: sejla.cookie })).data
+  const one = async (i) => {
+    const r = await post('/api/upload/init', { consent: true, guestName: `Paralelni ${i}`, files: [{ clientId: 'x', name: `p${i}.png`, type: 'image/png', size: file('photo4.png').length }] }, { 'x-test-ip': freshIp() })
+    await put(r.data.items[0].original, file('photo4.png'), 'image/png')
+    await post('/api/upload/complete', { batchId: r.data.batchId, batchKey: r.data.batchKey, ids: [r.data.items[0].id] })
+    return r.data.items[0].id
+  }
+  const ids = await Promise.all(Array.from({ length: 10 }, (_, i) => one(i)))
+  const st = (await call('GET', '/api/admin/stats', null, { cookie: sejla.cookie })).data
+  assert.equal(st.pending, before.pending + 10)
+  assert.equal(st.usage.files, before.usage.files + 10)
+  const [a, b] = await Promise.all([
+    post('/api/admin/action', { action: 'approve', ids: ids.slice(0, 5) }, asAdmin(sejla.cookie)),
+    post('/api/admin/action', { action: 'approve', ids: ids.slice(5) }, asAdmin(edvin.cookie)),
+  ])
+  assert.ok([...Object.values(a.data.results), ...Object.values(b.data.results)].every((x) => x.ok))
+  const g = await call('GET', '/api/gallery?kind=image')
+  assert.equal(g.data.counts.photos, 1 + 10)
+  await post('/api/admin/action', { action: 'delete', ids }, asAdmin(sejla.cookie))
+  const after = (await call('GET', '/api/admin/stats', null, { cookie: sejla.cookie })).data
+  assert.equal(after.usage.files, before.usage.files)
+  ok('10 istovremenih slanja i istovremeno odobravanje (Šejla + Edvin): ništa se ne gubi')
+}
+
 // ---------- ograničenja slanja
 {
   const ip = freshIp()

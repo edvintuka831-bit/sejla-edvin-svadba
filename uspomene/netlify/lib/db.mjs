@@ -1,14 +1,19 @@
 // Netlify Blobs – mali zapisi (spisak datoteka, statusi, čestitke, stolovi).
 // Same fotografije i videi su u Cloudflare R2, ne ovdje.
 //
-// Ključevi:
-//   media/{id}                  zapis o datoteci (izvor istine)
-//   idx/{status}/{id}           prazna oznaka za brzo listanje po statusu
-//   wish/{id}, widx/{status}/{id}
-//   pub/media, pub/wishes       spisak ODOBRENOG za gostinsku galeriju
-//   settings/tables             stolovi (mijenjaju se u administraciji)
-//   stats/usage                 ukupno zauzeće prostora
-//   rate/..., sec/...           ograničenja slanja i zaštita prijave
+// Nema zajedničkih brojača ni zajedničkih spiskova koji se prepisuju: svaka promjena
+// je zaseban ključ, pa istovremena slanja i dva administratora ne mogu pregaziti
+// jedno drugo. Brojevi i spiskovi se dobijaju listanjem ključeva.
+//
+//   media/{id}                     zapis o datoteci (izvor istine)
+//   idx/{status}/{id}              oznaka za listanje po statusu (admin)
+//   gal/{all|image|video}/{rev}-{id}  ODOBRENO za galeriju (rev = najnovije prvo)
+//   wish/{id}, widx/{status}/{id}, galw/{rev}-{id}
+//   sz/{id}/{bajtova}              zauzeće prostora po datoteci
+//   rate/{radnja}/{gost}/{prozor}/{vrijeme}{nasumično}~{količina}   ograničenja slanja
+//   sec/login/{admin}/{gost}/{prozor}/{nasumično}          pogrešne prijave
+//   settings/tables                stolovi (mijenjaju se u administraciji)
+import { randomBytes } from 'node:crypto'
 import { getStore } from '@netlify/blobs'
 
 export const STORE_NAME = 'sejla-edvin-uspomene'
@@ -17,34 +22,20 @@ export const db = () => (store ??= getStore({ name: STORE_NAME, consistency: 'st
 
 export const getJSON = (key) => db().get(key, { type: 'json' })
 export const setJSON = (key, value) => db().setJSON(key, value)
+export const setMarker = (key) => db().set(key, '')
 export const del = (key) => db().delete(key)
-
-// Siguran zajednički upis: pročitaj → izmijeni → upiši samo ako niko drugi nije upisao u međuvremenu.
-export async function mutateJSON(key, fallback, fn, attempts = 12) {
-  for (let i = 0; i < attempts; i++) {
-    const current = await db().getWithMetadata(key, { type: 'json' })
-    const value = current?.data ?? structuredClone(fallback)
-    const next = await fn(value)
-    if (next === undefined) return value // bez izmjene
-    const res = current
-      ? await db().setJSON(key, next, { onlyIfMatch: current.etag })
-      : await db().setJSON(key, next, { onlyIfNew: true })
-    if (res.modified) return next
-    await new Promise((r) => setTimeout(r, 30 + Math.random() * 120 * (i + 1)))
-  }
-  throw new Error(`Upis nije uspio zbog istovremenih izmjena (${key}).`)
-}
+const rnd = () => randomBytes(6).toString('base64url')
 
 export async function listKeys(prefix) {
   const keys = []
   for await (const page of db().list({ prefix, paginate: true })) {
     for (const b of page.blobs) keys.push(b.key)
   }
-  return keys
+  return keys.sort()
 }
 
-export const idsWithStatus = async (prefix, status) =>
-  (await listKeys(`${prefix}/${status}/`)).map((k) => k.slice(prefix.length + status.length + 2)).sort()
+const tail = (prefix) => (k) => k.slice(prefix.length)
+export const idsWithStatus = async (base, status) => (await listKeys(`${base}/${status}/`)).map(tail(`${base}/${status}/`))
 
 export async function getMany(prefix, ids, parallel = 25) {
   const out = []
@@ -62,34 +53,49 @@ export async function setStatus(kind, record, status) {
   const old = record.status
   record.status = status
   await setJSON(`${recPrefix}/${record.id}`, record)
-  await db().set(`${idxPrefix}/${status}/${record.id}`, '')
+  await setMarker(`${idxPrefix}/${status}/${record.id}`)
   if (old && old !== status) await del(`${idxPrefix}/${old}/${record.id}`)
 }
 
+// ------------------------------------------------ galerija (samo odobreno)
+// "rev" je obrnuto vrijeme odobrenja → abecedni redoslijed = najnovije prvo
+export const revTime = (ms = Date.now()) => String(10 ** 13 - ms).padStart(13, '0')
+export const galleryKeys = (rec) => (rec.galRev ? [`gal/all/${rec.galRev}-${rec.id}`, `gal/${rec.kind}/${rec.galRev}-${rec.id}`] : [])
+export const galleryIds = async (sub) => (await listKeys(`${sub}/`)).map((k) => k.slice(k.indexOf('-', sub.length + 1) + 1))
+
+// ------------------------------------------------ zauzeće prostora
+export const usageKey = (id, bytes) => `sz/${id}/${bytes}`
+export async function getUsage() {
+  const keys = await listKeys('sz/')
+  return { files: keys.length, bytes: keys.reduce((s, k) => s + (Number(k.split('/')[2]) || 0), 0) }
+}
+
 // ------------------------------------------------ ograničenja (fiksni vremenski prozori)
+// Prvo upiši zahtjev, pa prebroji po redoslijedu dolaska: i potpuno istovremeni
+// zahtjevi ne mogu zajedno preći ograničenje (višak se poništava).
 export async function consumeRate(hash, action, units, limit, windowSeconds) {
-  const bucket = Math.floor(Date.now() / 1000 / windowSeconds)
-  const key = `rate/${action}/${hash}/${bucket}`
-  let allowed = false
-  await mutateJSON(key, { used: 0 }, (v) => {
-    if (v.used + units > limit) {
-      allowed = false
-      return undefined
-    }
-    allowed = true
-    return { used: v.used + units, expires: (bucket + 1) * windowSeconds * 1000 }
-  })
-  return allowed
+  const prefix = `rate/${action}/${hash}/${Math.floor(Date.now() / 1000 / windowSeconds)}/`
+  const mine = `${prefix}${Date.now().toString(36).padStart(9, '0')}${rnd()}~${units}`
+  await setMarker(mine)
+  let used = 0
+  for (const k of await listKeys(prefix)) {
+    used += Number.parseInt(k.split('~')[1], 10) || 0
+    if (k === mine) break
+  }
+  if (used > limit) {
+    await del(mine)
+    return false
+  }
+  return true
 }
 
-export async function addUsage(bytes, files) {
-  return mutateJSON('stats/usage', { bytes: 0, files: 0 }, (v) => ({
-    bytes: Math.max(0, v.bytes + bytes),
-    files: Math.max(0, v.files + files),
-  }))
+export async function countEvents(prefix) {
+  return (await listKeys(prefix)).length
 }
-
-export const getUsage = async () => (await getJSON('stats/usage')) || { bytes: 0, files: 0 }
+export const addEvent = (prefix) => setMarker(`${prefix}${rnd()}`)
+export async function clearEvents(prefix) {
+  await Promise.all((await listKeys(prefix)).map(del))
+}
 
 // ------------------------------------------------ stolovi
 export async function getTables() {

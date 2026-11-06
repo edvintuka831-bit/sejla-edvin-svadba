@@ -20,7 +20,7 @@ import {
   settings,
   sha256,
 } from '../lib/core.mjs'
-import { consumeRate, db, del, getJSON, getTables, getUsage, idsWithStatus, setJSON } from '../lib/db.mjs'
+import { consumeRate, del, getJSON, getTables, getUsage, idsWithStatus, setJSON, setMarker } from '../lib/db.mjs'
 import { deleteObjects, presignPut } from '../lib/r2.mjs'
 
 const MB = 1024 * 1024
@@ -136,7 +136,7 @@ export default handle(async (req, context) => {
       consentAt: now,
       createdAt: now,
     }
-    await Promise.all([setJSON(`media/${id}`, rec), db().set(`idx/uploading/${id}`, '')])
+    await Promise.all([setJSON(`media/${id}`, rec), setMarker(`idx/uploading/${id}`)])
     return {
       clientId: f.clientId,
       id,

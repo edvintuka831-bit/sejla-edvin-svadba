@@ -2,7 +2,7 @@
 // Šifre se postavljaju privatno na Netlifyju (ADMIN_SEJLA_PASSWORD, ADMIN_EDVIN_PASSWORD).
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { HttpError, env } from './core.mjs'
-import { mutateJSON, getJSON } from './db.mjs'
+import { addEvent, clearEvents, countEvents } from './db.mjs'
 
 export const ADMINS = {
   sejla: { name: 'Šejla', envVar: 'ADMIN_SEJLA_PASSWORD' },
@@ -54,20 +54,19 @@ const secureFlag = (req) => (new URL(req.url).protocol === 'https:' ? '; Secure'
 export async function login(req, id, pw, clientHash) {
   if (!ADMINS[id]) throw new HttpError(400, 'Izaberite Šejla ili Edvin.')
   assertConfigured(id)
-  const lockKey = `sec/login/${id}/${clientHash}`
-  const state = (await getJSON(lockKey)) || { fails: 0, until: 0 }
-  if (state.until > Date.now()) {
-    const min = Math.ceil((state.until - Date.now()) / 60000)
+  // pogrešni pokušaji u tekućem 15-minutnom prozoru (svaki pokušaj je zaseban zapis)
+  const windowMs = LOCK_MINUTES * 60000
+  const bucket = Math.floor(Date.now() / windowMs)
+  const prefix = `sec/login/${id}/${clientHash}/${bucket}/`
+  if ((await countEvents(prefix)) >= MAX_FAILS) {
+    const min = Math.ceil(((bucket + 1) * windowMs - Date.now()) / 60000)
     throw new HttpError(429, `Previše pogrešnih pokušaja. Pokušajte ponovo za ${min} min.`)
   }
   if (!same(pw, password(id))) {
-    await mutateJSON(lockKey, { fails: 0, until: 0 }, (v) => {
-      const fails = v.until && v.until < Date.now() ? 1 : v.fails + 1
-      return { fails, until: fails >= MAX_FAILS ? Date.now() + LOCK_MINUTES * 60000 : 0 }
-    })
+    await addEvent(prefix)
     throw new HttpError(401, 'Pogrešna šifra.')
   }
-  await mutateJSON(lockKey, state, () => ({ fails: 0, until: 0 }))
+  await clearEvents(prefix)
   const exp = Date.now() + SESSION_HOURS * 3600_000
   const payload = `${id}.${exp}.${randomBytes(12).toString('base64url')}`
   const token = `${payload}.${mac(id, payload)}`
